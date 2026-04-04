@@ -6,8 +6,16 @@ import type { MapRef, MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Spot } from "@/types/database";
 import SpotPanel from "./SpotPanel";
-import { LocateFixed, ChevronDown, Layers, Flame, RotateCcw } from "lucide-react";
+import { LocateFixed, ChevronDown, Layers, Flame, RotateCcw, X, Fish, MapPin } from "lucide-react";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
+import Link from "next/link";
+
+type WaterBodyPanel = {
+  name: string;
+  lat: number;
+  lng: number;
+  nearbySpots: SpotWithFish[];
+};
 
 const MAP_STYLES = [
   { id: "outdoors",  label: "Outdoors",  style: "mapbox://styles/mapbox/outdoors-v12" },
@@ -45,9 +53,10 @@ const WT_STROKE: Record<string, string> = {
   pond:      "#6ee7b7",
 };
 
-export default function MapView({ spots }: { spots: SpotWithFish[] }) {
+export default function MapView({ spots, heatmapPoints = [] }: { spots: SpotWithFish[]; heatmapPoints?: [number, number][] }) {
   const mapRef = useRef<MapRef>(null);
   const [selectedSpot, setSelectedSpot] = useState<SpotWithFish | null>(null);
+  const [waterBody, setWaterBody] = useState<WaterBodyPanel | null>(null);
   const [waterFilter, setWaterFilter] = useState("all");
   const [fishFilter, setFishFilter] = useState("all");
   const [stateFilter, setStateFilter] = useState("all");
@@ -132,7 +141,7 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
   const onMapLoad = useCallback(() => {
     const map = mapRef.current?.getMap();
     if (!map) return;
-    ["clusters", "unclustered-point"].forEach((layerId) => {
+    ["clusters", "unclustered-point", "water-clickable", "waterway-clickable"].forEach((layerId) => {
       map.on("mouseenter", layerId, () => {
         map.getCanvas().style.cursor = "pointer";
       });
@@ -150,12 +159,44 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
     };
   }, []);
 
+  function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
+    const R = 6371;
+    const dLat = ((lat2 - lat1) * Math.PI) / 180;
+    const dLon = ((lon2 - lon1) * Math.PI) / 180;
+    const a = Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
   const onClick = useCallback(
     (event: MapMouseEvent) => {
       const features = event.features;
 
+      // Check if a water-clickable layer was hit (our custom interactive layers)
+      const waterHit = features?.find(
+        (f) => f.layer?.id === "water-clickable" || f.layer?.id === "waterway-clickable"
+      );
+
+      if (waterHit) {
+        const name: string =
+          waterHit.properties?.name_en ||
+          waterHit.properties?.name ||
+          (waterHit.layer?.id === "waterway-clickable" ? "River / Stream" : "Lake / Reservoir");
+        const { lat, lng } = event.lngLat;
+        const nearby = spots
+          .filter((s) => s.latitude != null && s.longitude != null)
+          .map((s) => ({ ...s, dist: haversineKm(lat, lng, Number(s.latitude), Number(s.longitude)) }))
+          .filter((s) => s.dist < 25)
+          .sort((a, b) => a.dist - b.dist)
+          .slice(0, 8);
+        setWaterBody({ name, lat, lng, nearbySpots: nearby });
+        setSelectedSpot(null);
+        return;
+      }
+
       if (!features || features.length === 0) {
         setSelectedSpot(null);
+        setWaterBody(null);
         return;
       }
 
@@ -163,11 +204,9 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
       if (!feature?.properties) return;
 
       if (feature.properties.cluster) {
-        // Cluster click — zoom in to expand
         const clusterId = feature.properties.cluster_id as number;
         const mapInstance = mapRef.current?.getMap();
         if (!mapInstance) return;
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const source = mapInstance.getSource("spots-source") as any;
         source?.getClusterExpansionZoom(clusterId, (err: Error | null, zoom: number) => {
@@ -177,10 +216,12 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
           mapRef.current?.flyTo({ center: coords, zoom: zoom + 0.5, duration: 500 });
         });
       } else {
-        // Individual spot click — open panel
         const spotId = feature.properties.id as string;
         const spot = spots.find((s) => s.id === spotId);
-        if (spot) setSelectedSpot(spot);
+        if (spot) {
+          setSelectedSpot(spot);
+          setWaterBody(null);
+        }
       }
     },
     [spots]
@@ -361,11 +402,70 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
           initialViewState={US_CENTER}
           style={{ width: "100%", height: "100%" }}
           mapStyle={MAP_STYLES[styleIdx].style}
-          interactiveLayerIds={["clusters", "unclustered-point"]}
+          interactiveLayerIds={["clusters", "unclustered-point", "water-clickable", "waterway-clickable"]}
           onClick={onClick}
           onLoad={onMapLoad}
         >
           <NavigationControl position="bottom-right" />
+
+          {/* Catch heatmap — highlights productive fishing waters */}
+          {heatmapPoints.length > 0 && (
+            <Source
+              id="catch-heat"
+              type="geojson"
+              data={{
+                type: "FeatureCollection",
+                features: heatmapPoints.map(([lng, lat]) => ({
+                  type: "Feature",
+                  properties: {},
+                  geometry: { type: "Point", coordinates: [lng, lat] },
+                })),
+              }}
+            >
+              <Layer
+                id="catch-heatmap"
+                type="heatmap"
+                paint={{
+                  "heatmap-weight": 1,
+                  "heatmap-intensity": ["interpolate", ["linear"], ["zoom"], 4, 0.3, 12, 1.5],
+                  "heatmap-color": [
+                    "interpolate", ["linear"], ["heatmap-density"],
+                    0,   "rgba(0,0,0,0)",
+                    0.2, "rgba(14,165,233,0.4)",
+                    0.5, "rgba(59,130,246,0.6)",
+                    0.8, "rgba(139,92,246,0.7)",
+                    1,   "rgba(236,72,153,0.85)",
+                  ],
+                  "heatmap-radius": ["interpolate", ["linear"], ["zoom"], 4, 12, 10, 25, 14, 40],
+                  "heatmap-opacity": 0.75,
+                }}
+              />
+            </Source>
+          )}
+
+          {/* Water body clickable layers — transparent fill/line on composite water source */}
+          <Layer
+            id="water-clickable"
+            type="fill"
+            source="composite"
+            source-layer="water"
+            paint={{
+              "fill-color": "#38bdf8",
+              "fill-opacity": 0.06,
+            }}
+          />
+          <Layer
+            id="waterway-clickable"
+            type="line"
+            source="composite"
+            source-layer="waterway"
+            minzoom={7}
+            paint={{
+              "line-color": "#38bdf8",
+              "line-opacity": ["interpolate", ["linear"], ["zoom"], 7, 0.25, 14, 0.6],
+              "line-width": ["interpolate", ["linear"], ["zoom"], 7, 1, 12, 2.5, 16, 5],
+            }}
+          />
 
           <Source
             id="spots-source"
@@ -475,6 +575,74 @@ export default function MapView({ spots }: { spots: SpotWithFish[] }) {
           <SpotPanel spot={selectedSpot} onClose={() => setSelectedSpot(null)} />
         )}
       </div>
+
+      {/* Water body panel */}
+      {waterBody && (
+        <div className="absolute top-0 right-0 h-full w-full sm:w-96 z-20 bg-[#070e1c]/95 backdrop-blur-md border-l border-white/8 overflow-y-auto">
+          <div className="p-5">
+            <div className="flex items-start justify-between mb-5">
+              <div>
+                <h2 className="text-lg font-bold text-white">{waterBody.name}</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {waterBody.lat.toFixed(4)}, {waterBody.lng.toFixed(4)}
+                </p>
+              </div>
+              <button
+                onClick={() => setWaterBody(null)}
+                className="w-8 h-8 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center transition-colors shrink-0"
+              >
+                <X size={14} className="text-slate-400" />
+              </button>
+            </div>
+
+            {waterBody.nearbySpots.length > 0 ? (
+              <>
+                <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold mb-3 flex items-center gap-1.5">
+                  <MapPin size={11} /> Nearby Fishing Spots
+                </p>
+                <div className="flex flex-col gap-2">
+                  {waterBody.nearbySpots.map((s) => {
+                    const fish = s.spot_fish
+                      .map((sf) => sf.fish_species)
+                      .filter(Boolean) as { id: string; name: string }[];
+                    return (
+                      <Link
+                        key={s.id}
+                        href={`/spots/${s.id}`}
+                        className="p-3.5 rounded-xl border border-white/8 bg-white/3 hover:bg-white/6 hover:border-white/15 transition-colors group"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</p>
+                          <span className="text-xs text-blue-400 capitalize">{s.water_type}</span>
+                        </div>
+                        {fish.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <Fish size={10} className="text-slate-600 shrink-0" />
+                            {fish.slice(0, 4).map((f) => (
+                              <span key={f.id} className="text-[10px] text-slate-500">{f.name}{fish.indexOf(f) < fish.length - 1 ? "," : ""}</span>
+                            ))}
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-10">
+                <MapPin size={28} className="mx-auto mb-3 text-slate-700" />
+                <p className="text-sm text-slate-500">No spots logged near here yet</p>
+                <Link
+                  href="/submit-spot"
+                  className="mt-3 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                >
+                  Add the first spot →
+                </Link>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Fish, Waves, Plus, MapPin } from "lucide-react";
+import NearMeSpots from "@/components/NearMeSpots";
 
 const WATER_TABS = [
   { id: "all",       label: "All",             types: null },
@@ -31,7 +32,7 @@ export default async function SpotsPage({
   // Fetch all approved spots (with fish) — we'll filter state client-side via query
   let query = supabase
     .from("spots")
-    .select(`*, spot_fish ( fish_species ( id, name ) )`)
+    .select(`*, latitude, longitude, spot_fish ( fish_species ( id, name ) )`)
     .eq("approved", true)
     .order("name");
 
@@ -110,6 +111,9 @@ export default async function SpotsPage({
           ))}
         </div>
       )}
+
+      {/* Near Me */}
+      <NearMeSpots spots={(spots ?? []) as Parameters<typeof NearMeSpots>[0]["spots"]} />
 
       {/* Water type tabs */}
       <div className="flex gap-2 flex-wrap mb-6">

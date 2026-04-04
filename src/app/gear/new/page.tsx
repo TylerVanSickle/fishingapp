@@ -69,7 +69,7 @@ export default function NewGearSetup() {
           <div>
             <label className={labelClass}>Rod</label>
             <input type="text" value={rod} onChange={e => setRod(e.target.value)}
-              placeholder='e.g. "St. Croix Triumph 6\'6\" UL"' className={inputClass} maxLength={100} />
+              placeholder='e.g. St. Croix Triumph 6ft6 UL' className={inputClass} maxLength={100} />
           </div>
           <div>
             <label className={labelClass}>Reel</label>

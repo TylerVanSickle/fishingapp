@@ -37,6 +37,7 @@ import SpotComments from "@/components/SpotComments";
 import SpotVerifyButton from "@/components/SpotVerifyButton";
 import AddToTripButton from "@/components/AddToTripButton";
 import ShareButton from "@/components/ShareButton";
+import ReportButton from "@/components/ReportButton";
 import SolunarWidget from "@/components/SolunarWidget";
 import SpotPhotoGallery from "@/components/SpotPhotoGallery";
 import ProBadge from "@/components/ProBadge";
@@ -226,6 +227,7 @@ export default async function SpotPage({ params }: { params: Promise<{ id: strin
           <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
             {user && <SaveSpotButton spotId={id} initialSaved={isSaved} />}
             <ShareButton title={spot.name} text={`Check out ${spot.name} on HookLine`} />
+            <ReportButton contentType="spot" contentId={id} />
             <a
               href={googleMapsUrl}
               target="_blank"

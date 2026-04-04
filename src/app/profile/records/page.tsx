@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Trophy, ArrowLeft, Fish, Scale, Ruler, Calendar, MapPin } from "lucide-react";
 import ClickablePhoto from "@/components/ClickablePhoto";
+import ProGate from "@/components/ProGate";
 
 type CatchRow = {
   id: string;
@@ -18,6 +19,19 @@ export default async function PersonalRecordsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?redirectTo=/profile/records");
+
+  const { data: profile } = await supabase.from("profiles").select("is_pro").eq("id", user.id).single();
+  const isPro = !!(profile as unknown as { is_pro?: boolean } | null)?.is_pro;
+
+  if (!isPro) {
+    return <ProGate
+      title="Personal Records"
+      description="Your trophy wall — the heaviest and longest catch per species, ranked with gold, silver, and bronze medals."
+      icon={Trophy}
+      iconColor="text-amber-400"
+      features={["Best catch per species", "Overall heaviest & longest", "Medal rankings", "Full catch history"]}
+    />;
+  }
 
   const { data: raw } = await supabase
     .from("catches")

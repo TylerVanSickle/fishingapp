@@ -8,6 +8,7 @@ import Avatar from "@/components/Avatar";
 import ShareButton from "@/components/ShareButton";
 import ClickablePhoto from "@/components/ClickablePhoto";
 import ProBadge from "@/components/ProBadge";
+import ReportButton from "@/components/ReportButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -110,6 +111,7 @@ export default async function AnglerProfilePage({
               </Link>
             )}
             <ShareButton title={`@${profile.username} on HookLine`} text={`Check out @${profile.username}'s catches on HookLine`} />
+            {!isOwnProfile && <ReportButton contentType="profile" contentId={id} />}
           </div>
           {profile.home_state && (
             <p className="flex items-center gap-1 text-sm text-slate-500 mb-1">

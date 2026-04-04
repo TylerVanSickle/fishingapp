@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Target, MapPin, Fish, Scale, Clock, Sparkles, ArrowLeft, Users } from "lucide-react";
+import { Target, MapPin, Fish, Scale, Clock, Sparkles, ArrowLeft, Users, TrendingUp, Utensils, Thermometer, Zap } from "lucide-react";
+import { getSpeciesTips, getSeasonLabel, getSeason } from "@/lib/fishingTips";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -70,6 +71,10 @@ export default async function TargetSpeciesPage({ params }: { params: Promise<{ 
     return `${h - 12}:00 PM`;
   }
 
+  // Fishing tips
+  const currentSeason = getSeason();
+  const tips = getSpeciesTips(fish.name, "lake", new Date());
+
   // Stats
   const withWeight = publicCatches.filter(c => c.weight_lbs != null);
   const avgWeight = withWeight.length ? withWeight.reduce((s, c) => s + c.weight_lbs!, 0) / withWeight.length : null;
@@ -112,6 +117,44 @@ export default async function TargetSpeciesPage({ params }: { params: Promise<{ 
             <p className="text-xs text-slate-500 mt-0.5">{label}</p>
           </div>
         ))}
+      </div>
+
+      {/* Season Strategy — always visible */}
+      <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 mb-6">
+        <h2 className="text-xs font-bold text-amber-400/80 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+          <TrendingUp size={11} /> {getSeasonLabel()} Strategy
+        </h2>
+        <p className="text-sm text-slate-200 font-medium leading-relaxed mb-1">{tips.technique}</p>
+        <p className="text-xs text-slate-500 leading-relaxed mb-4">{tips.seasonNote}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/8">
+            <p className="text-[10px] text-slate-600 mb-1 flex items-center gap-1"><Thermometer size={9} /> Water temp</p>
+            <p className="text-xs text-slate-200 font-medium">{tips.tempRange}</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/8">
+            <p className="text-[10px] text-slate-600 mb-1 flex items-center gap-1"><Zap size={9} /> Target depth</p>
+            <p className="text-xs text-slate-200 font-medium">{tips.depth}</p>
+          </div>
+          <div className="p-2.5 rounded-xl bg-white/5 border border-white/8 col-span-2">
+            <p className="text-[10px] text-slate-600 mb-1 flex items-center gap-1"><Clock size={9} /> Best timing</p>
+            <p className="text-xs text-slate-200">{tips.timing}</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 mb-3">
+          <Utensils size={11} className="text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-[10px] text-slate-500 mb-1.5">Expert bait picks for {getSeasonLabel().toLowerCase()}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {tips.baits.map((b) => (
+                <span key={b} className="text-xs px-2.5 py-1 rounded-full bg-amber-500/12 border border-amber-500/20 text-amber-300">{b}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex items-start gap-2">
+          <MapPin size={11} className="text-purple-400 shrink-0 mt-0.5" />
+          <p className="text-xs text-slate-400"><span className="text-slate-500">Where to look:</span> {tips.structure}</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-6">

@@ -25,6 +25,30 @@ export async function createTrip(formData: FormData) {
   redirect(`/trips/${data.id}`);
 }
 
+export async function updateTrip(tripId: string, updates: {
+  name?: string;
+  description?: string | null;
+  planned_date?: string | null;
+  bait_plan?: string | null;
+  gear_notes?: string | null;
+  checklist?: { text: string; done: boolean }[];
+  target_species?: string[];
+  is_public?: boolean;
+}) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Must be logged in");
+
+  const { error } = await supabase.from("trips")
+    .update(updates)
+    .eq("id", tripId)
+    .eq("user_id", user.id);
+
+  if (error) throw new Error(error.message);
+  revalidatePath(`/trips/${tripId}`);
+  revalidatePath("/trips");
+}
+
 export async function deleteTrip(tripId: string) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

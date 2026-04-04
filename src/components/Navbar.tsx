@@ -44,6 +44,7 @@ export default async function Navbar() {
     { href: "/journal",           label: "✦ Fishing Journal" },
     { href: "/gear",              label: "✦ Gear Tracker" },
     { href: "/trips",             label: "Trips" },
+    { href: "/regulations",       label: "Regulations" },
   ] : [];
 
   return (

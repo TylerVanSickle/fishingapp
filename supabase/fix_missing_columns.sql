@@ -235,6 +235,100 @@ DO $$ BEGIN
   END IF;
 END $$;
 
+-- 11. Notifications RLS
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notifications' AND policyname = 'Users can read own notifications') THEN
+    CREATE POLICY "Users can read own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notifications' AND policyname = 'System can insert notifications') THEN
+    CREATE POLICY "System can insert notifications" ON notifications FOR INSERT WITH CHECK (true);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'notifications' AND policyname = 'Users can update own notifications') THEN
+    CREATE POLICY "Users can update own notifications" ON notifications FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+
+-- 12. Content reports (catches, spots, profiles)
+CREATE TABLE IF NOT EXISTS content_reports (
+  id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  reporter_id  uuid NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  content_type text NOT NULL CHECK (content_type IN ('catch', 'spot', 'profile')),
+  content_id   uuid NOT NULL,
+  reason       text,
+  reviewed     boolean NOT NULL DEFAULT false,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (reporter_id, content_type, content_id)
+);
+ALTER TABLE content_reports ENABLE ROW LEVEL SECURITY;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'content_reports' AND policyname = 'Authenticated users can submit content reports') THEN
+    CREATE POLICY "Authenticated users can submit content reports" ON content_reports FOR INSERT WITH CHECK (auth.uid() = reporter_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'content_reports' AND policyname = 'Admins can read content reports') THEN
+    CREATE POLICY "Admins can read content reports" ON content_reports FOR SELECT USING (
+      EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+    );
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'content_reports' AND policyname = 'Admins can update content reports') THEN
+    CREATE POLICY "Admins can update content reports" ON content_reports FOR UPDATE USING (
+      EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND is_admin = true)
+    );
+  END IF;
+END $$;
+
+-- 13. Enhanced trip planner columns
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS is_public boolean NOT NULL DEFAULT false;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS bait_plan text;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS gear_notes text;
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS checklist jsonb NOT NULL DEFAULT '[]';
+ALTER TABLE trips ADD COLUMN IF NOT EXISTS target_species uuid[];
+
+-- RLS: allow anyone to read public trips
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trips' AND policyname = 'Public trips are readable by anyone') THEN
+    CREATE POLICY "Public trips are readable by anyone" ON trips FOR SELECT USING (is_public = true OR auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trips' AND policyname = 'Users can insert own trips') THEN
+    CREATE POLICY "Users can insert own trips" ON trips FOR INSERT WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trips' AND policyname = 'Users can update own trips') THEN
+    CREATE POLICY "Users can update own trips" ON trips FOR UPDATE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trips' AND policyname = 'Users can delete own trips') THEN
+    CREATE POLICY "Users can delete own trips" ON trips FOR DELETE USING (auth.uid() = user_id);
+  END IF;
+END $$;
+-- trip_spots RLS
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trip_spots' AND policyname = 'Trip spots follow trip visibility') THEN
+    CREATE POLICY "Trip spots follow trip visibility" ON trip_spots FOR SELECT USING (
+      EXISTS (SELECT 1 FROM trips WHERE id = trip_id AND (is_public = true OR user_id = auth.uid()))
+    );
+  END IF;
+END $$;
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'trip_spots' AND policyname = 'Users can manage own trip spots') THEN
+    CREATE POLICY "Users can manage own trip spots" ON trip_spots FOR ALL USING (
+      EXISTS (SELECT 1 FROM trips WHERE id = trip_id AND user_id = auth.uid())
+    );
+  END IF;
+END $$;
+
 -- Allow users to update their own catches (needed for edit catch page)
 DO $$ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename = 'catches' AND policyname = 'Users can update own catches') THEN

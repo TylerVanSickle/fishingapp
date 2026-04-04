@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Search, MapPin, Fish, User, Waves } from "lucide-react";
+import { Search, MapPin, Fish, User, Waves, Scale } from "lucide-react";
 
 export default async function SearchPage({
   searchParams,
@@ -15,9 +15,10 @@ export default async function SearchPage({
   let spots: { id: string; name: string; water_type: string; state: string | null }[] = [];
   let species: { id: string; name: string; description: string | null }[] = [];
   let anglers: { id: string; username: string; home_state: string | null }[] = [];
+  let catches: { id: string; weight_lbs: number | null; caught_at: string; fish_species: { name: string } | null; spots: { name: string } | null; profiles: { username: string } | null }[] = [];
 
   if (query.length >= 2) {
-    const [{ data: s }, { data: f }, { data: a }] = await Promise.all([
+    const [{ data: s }, { data: f }, { data: a }, { data: c }] = await Promise.all([
       supabase
         .from("spots")
         .select("id, name, water_type, state")
@@ -37,13 +38,38 @@ export default async function SearchPage({
         .ilike("username", `%${query}%`)
         .order("username")
         .limit(8),
+      supabase
+        .from("catches")
+        .select("id, weight_lbs, caught_at, fish_species(name), spots(name), profiles!user_id(username)")
+        .eq("is_private", false)
+        .or(`notes.ilike.%${query}%`)
+        .order("caught_at", { ascending: false })
+        .limit(6),
     ]);
     spots = s ?? [];
     species = f ?? [];
     anglers = a ?? [];
+    catches = (c ?? []) as unknown as typeof catches;
+
+    // Also search catches by species name match
+    if (species.length > 0) {
+      const speciesIds = species.map((sp) => sp.id);
+      const { data: catchesBySpecies } = await supabase
+        .from("catches")
+        .select("id, weight_lbs, caught_at, fish_species(name), spots(name), profiles!user_id(username)")
+        .eq("is_private", false)
+        .in("fish_id", speciesIds)
+        .order("weight_lbs", { ascending: false, nullsFirst: false })
+        .limit(6);
+      const existing = new Set(catches.map((c) => c.id));
+      for (const c of (catchesBySpecies ?? []) as unknown as typeof catches) {
+        if (!existing.has(c.id)) catches.push(c);
+      }
+      catches = catches.slice(0, 8);
+    }
   }
 
-  const totalResults = spots.length + species.length + anglers.length;
+  const totalResults = spots.length + species.length + anglers.length + catches.length;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -131,6 +157,41 @@ export default async function SearchPage({
                           {f.description && (
                             <p className="text-xs text-slate-600 line-clamp-1">{f.description}</p>
                           )}
+                        </div>
+                      </div>
+                      <span className="text-xs text-slate-700 group-hover:text-blue-400 transition-colors">→</span>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {catches.length > 0 && (
+              <section>
+                <h2 className="flex items-center gap-2 text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">
+                  <Scale size={12} /> Catches
+                  <span className="font-normal normal-case text-slate-700">({catches.length})</span>
+                </h2>
+                <div className="flex flex-col gap-2">
+                  {catches.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/catches/${c.id}`}
+                      className="flex items-center justify-between p-4 rounded-xl border border-white/8 bg-white/2 hover:bg-white/4 transition-colors group"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-green-600/12 border border-green-500/20 flex items-center justify-center shrink-0">
+                          <Fish size={14} className="text-green-400" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">
+                            {(c.fish_species as unknown as { name: string } | null)?.name ?? "Unknown"}
+                            {c.weight_lbs != null && <span className="text-slate-500 font-normal"> · {c.weight_lbs} lbs</span>}
+                          </p>
+                          <p className="text-xs text-slate-600">
+                            @{(c.profiles as unknown as { username: string } | null)?.username ?? "?"}
+                            {(c.spots as unknown as { name: string } | null)?.name && ` · ${(c.spots as unknown as { name: string }).name}`}
+                          </p>
                         </div>
                       </div>
                       <span className="text-xs text-slate-700 group-hover:text-blue-400 transition-colors">→</span>

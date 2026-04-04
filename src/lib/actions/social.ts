@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { filterCheck } from "@/lib/contentFilter";
 
 // ─── Follow ──────────────────────────────────────────────────────────────────
 
@@ -56,6 +57,9 @@ export async function addSpotComment(spotId: string, body: string) {
   const trimmed = body.trim();
   if (!trimmed || trimmed.length > 1000) throw new Error("Invalid comment");
 
+  const filterErr = filterCheck(trimmed);
+  if (filterErr) throw new Error(filterErr);
+
   await supabase.from("spot_comments").insert({
     spot_id: spotId,
     user_id: user.id,
@@ -87,6 +91,9 @@ export async function addCatchComment(catchId: string, content: string) {
 
   const trimmed = content.trim();
   if (!trimmed || trimmed.length > 500) throw new Error("Comment must be 1–500 characters");
+
+  const filterErr = filterCheck(trimmed);
+  if (filterErr) throw new Error(filterErr);
 
   await supabase.from("catch_comments").insert({
     catch_id: catchId,

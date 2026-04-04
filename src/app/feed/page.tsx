@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import FollowButton from "@/components/FollowButton";
 import ClickablePhoto from "@/components/ClickablePhoto";
+import ReportButton from "@/components/ReportButton";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
 
 function timeAgo(dateStr: string) {
@@ -316,16 +317,11 @@ export default async function FeedPage({
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-slate-600">
+                      <div className="flex items-center gap-3 text-xs text-slate-600">
                         <span>{timeAgo(c.caught_at)}</span>
-                        <span>·</span>
-                        <span>
-                          {new Date(c.caught_at).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </span>
+                        {user && c.user_id !== user.id && (
+                          <ReportButton contentType="catch" contentId={c.id} />
+                        )}
                       </div>
                     </div>
                   </div>

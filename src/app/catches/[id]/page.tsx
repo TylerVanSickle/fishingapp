@@ -8,6 +8,7 @@ import Avatar from "@/components/Avatar";
 import ShareButton from "@/components/ShareButton";
 import CatchReactions from "@/components/CatchReactions";
 import CatchComments from "@/components/CatchComments";
+import ReportButton from "@/components/ReportButton";
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
@@ -211,6 +212,11 @@ export default async function CatchDetailPage({ params }: { params: Promise<{ id
           <Fish size={14} className="text-slate-600 group-hover:text-blue-400 transition-colors" />
         </Link>
       )}
+
+      {/* Report */}
+      <div className="mt-2 flex justify-end">
+        <ReportButton contentType="catch" contentId={id} isOwn={currentUser?.id === angler?.id} />
+      </div>
 
       {/* Species link */}
       {fish && (

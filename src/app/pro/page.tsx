@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Sparkles, Check, MapPin, Brain, BarChart3, Calendar, Zap, Fish, Lock, BookOpen, Wrench, Target, TrendingUp } from "lucide-react";
+import { Sparkles, Check, MapPin, Brain, BarChart3, Calendar, Zap, Fish, Lock, BookOpen, Wrench, Target, TrendingUp, Map, Trophy } from "lucide-react";
 import ProBadge from "@/components/ProBadge";
 
 const PRO_FEATURES = [
@@ -73,6 +73,27 @@ const PRO_FEATURES = [
     bg: "bg-blue-500/10 border-blue-500/20",
     title: "7-Day Fishing Forecast",
     desc: "Full week solunar outlook and hourly breakdown. Plan your best fishing days before the week starts.",
+  },
+  {
+    icon: Map,
+    color: "text-blue-400",
+    bg: "bg-blue-500/10 border-blue-500/20",
+    title: "Advanced Trip Planner",
+    desc: "Plan full fishing trips with target species, bait plans, gear notes, solunar windows, and packing checklists. Share trips publicly with a link.",
+  },
+  {
+    icon: Brain,
+    color: "text-emerald-400",
+    bg: "bg-emerald-500/10 border-emerald-500/20",
+    title: "Species × Spot Intelligence",
+    desc: "Select your target species and see if they've been caught at your planned spots — with community-proven baits, best hours logged, and expert season strategy tailored to your water type.",
+  },
+  {
+    icon: Trophy,
+    color: "text-amber-400",
+    bg: "bg-amber-500/10 border-amber-500/20",
+    title: "Personal Records",
+    desc: "Trophy wall showing your heaviest and longest catch per species. Medal rankings — gold, silver, bronze — across everything you've ever logged.",
   },
 ];
 
@@ -215,11 +236,23 @@ export default async function ProPage() {
 
       {/* Pro feature links */}
       {isPro && (
-        <div className="mt-10 text-center space-y-2">
+        <div className="mt-10 text-center space-y-3">
           <p className="text-sm text-slate-400">Jump to your Pro features:</p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
-            <Link href="/pro/where-to-fish" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Link href="/pro/where-to-fish" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
               <MapPin size={13} /> Where to Fish
+            </Link>
+            <Link href="/trips" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
+              <Map size={13} /> Trip Planner
+            </Link>
+            <Link href="/journal" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
+              <BookOpen size={13} /> Journal
+            </Link>
+            <Link href="/gear" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
+              <Wrench size={13} /> Gear
+            </Link>
+            <Link href="/profile/records" className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:border-white/20 transition-colors text-sm">
+              <Trophy size={13} /> Records
             </Link>
           </div>
         </div>
