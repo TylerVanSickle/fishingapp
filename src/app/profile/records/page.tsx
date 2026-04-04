@@ -24,13 +24,22 @@ export default async function PersonalRecordsPage() {
   const isPro = !!(profile as unknown as { is_pro?: boolean } | null)?.is_pro;
 
   if (!isPro) {
-    return <ProGate
-      title="Personal Records"
-      description="Your trophy wall — the heaviest and longest catch per species, ranked with gold, silver, and bronze medals."
-      icon={Trophy}
-      iconColor="text-amber-400"
-      features={["Best catch per species", "Overall heaviest & longest", "Medal rankings", "Full catch history"]}
-    />;
+    return (
+      <ProGate
+        title="Personal Records"
+        icon={Trophy}
+        iconColor="text-amber-400"
+        description="Your trophy wall — every personal best, ranked with gold, silver, and bronze medals. See how far you've come and chase the next record."
+        features={[
+          "Heaviest & longest catch per species",
+          "Gold, silver, bronze medal rankings",
+          "Overall all-time bests",
+          "Photo trophy wall",
+          "Spot & date for every record",
+          "Track improvement over time",
+        ]}
+      />
+    );
   }
 
   const { data: raw } = await supabase

@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { BookOpen, Plus, Sparkles, CloudSun, Thermometer, Droplets, Wind, ChevronRight } from "lucide-react";
+import { BookOpen, Plus, CloudSun, Thermometer, Droplets, Wind, ChevronRight } from "lucide-react";
+import ProGate from "@/components/ProGate";
 
 export default async function JournalPage() {
   const supabase = await createClient();
@@ -20,31 +21,20 @@ export default async function JournalPage() {
 
   if (!isPro) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center mx-auto mb-4">
-          <BookOpen size={28} className="text-amber-400" />
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Fishing Journal</h1>
-        <p className="text-slate-400 mb-2">Keep private outing notes — conditions, what worked, what didn&apos;t.</p>
-        <p className="text-slate-600 text-sm mb-6">Track patterns over seasons. Be the angler who actually remembers why last April was so good.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 text-left">
-          {[
-            { icon: CloudSun, label: "Conditions log", desc: "Weather, wind, water clarity, temp" },
-            { icon: BookOpen, label: "Free-form notes", desc: "What worked, what didn't, ideas to try" },
-            { icon: Thermometer, label: "Seasonal patterns", desc: "Spot which months are your best" },
-          ].map(({ icon: Icon, label, desc }) => (
-            <div key={label} className="p-3 rounded-xl border border-white/8 bg-white/2">
-              <Icon size={16} className="text-amber-400 mb-2" />
-              <p className="text-sm font-semibold text-white">{label}</p>
-              <p className="text-xs text-slate-500 mt-0.5">{desc}</p>
-            </div>
-          ))}
-        </div>
-        <Link href="/pro" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold transition-colors">
-          <Sparkles size={15} /> Unlock Journal with Pro
-        </Link>
-        <p className="text-xs text-slate-600 mt-3">$15/mo or $150/yr · Cancel anytime</p>
-      </div>
+      <ProGate
+        title="Fishing Journal"
+        icon={BookOpen}
+        iconColor="text-amber-400"
+        description="Keep private outing notes — weather, water clarity, what worked and what didn't. Build a personal knowledge base that makes you a smarter angler every season."
+        features={[
+          "Log conditions: weather, wind, water clarity, temp",
+          "Free-form notes on what worked & why",
+          "Mood tracker (great day vs skunked)",
+          "Spot which months are your best",
+          "Private — only you can see your journal",
+          "Unlimited entries, no limits",
+        ]}
+      />
     );
   }
 

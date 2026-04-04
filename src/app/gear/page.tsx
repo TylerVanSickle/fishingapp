@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Wrench, Plus, Sparkles, ChevronRight, Fish } from "lucide-react";
+import { Wrench, Plus, ChevronRight, Fish } from "lucide-react";
+import ProGate from "@/components/ProGate";
 
 export default async function GearPage() {
   const supabase = await createClient();
@@ -33,29 +34,20 @@ export default async function GearPage() {
 
   if (!isPro) {
     return (
-      <div className="max-w-2xl mx-auto px-4 py-16 text-center">
-        <div className="w-16 h-16 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center mx-auto mb-4">
-          <Wrench size={28} className="text-amber-400" />
-        </div>
-        <h1 className="text-2xl font-bold text-white mb-2">Gear & Tackle Tracker</h1>
-        <p className="text-slate-400 mb-2">Save your rod/reel setups and tag catches to them.</p>
-        <p className="text-slate-600 text-sm mb-6">Discover which setup catches the most fish. Know exactly what&apos;s in your bag before you leave the house.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 text-left">
-          {[
-            { label: "Setup library", desc: "Rod, reel, line, leader — everything saved" },
-            { label: "Catch tagging", desc: "Link every fish to the setup that caught it" },
-            { label: "Performance stats", desc: "See which setup is your MVP" },
-          ].map(({ label, desc }) => (
-            <div key={label} className="p-3 rounded-xl border border-white/8 bg-white/2">
-              <p className="text-sm font-semibold text-white mb-0.5">{label}</p>
-              <p className="text-xs text-slate-500">{desc}</p>
-            </div>
-          ))}
-        </div>
-        <Link href="/pro" className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold transition-colors">
-          <Sparkles size={15} /> Unlock Gear Tracker with Pro
-        </Link>
-      </div>
+      <ProGate
+        title="Gear & Tackle Tracker"
+        icon={Wrench}
+        iconColor="text-amber-400"
+        description="Save every rod/reel/line setup and tag your catches to the gear that caught them. Find out which setup is your top performer — and never forget what's in your bag."
+        features={[
+          "Save unlimited rod, reel, line & leader setups",
+          "Tag every catch to the setup that caught it",
+          "See which setup catches the most fish",
+          "Notes per setup — what each rig is best for",
+          "Quick reference before you leave the house",
+          "Full catch history per setup",
+        ]}
+      />
     );
   }
 

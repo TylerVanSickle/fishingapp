@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Sparkles, Check, MapPin, Brain, BarChart3, Calendar, Zap, Fish, Lock, BookOpen, Wrench, Target, TrendingUp, Map, Trophy } from "lucide-react";
 import ProBadge from "@/components/ProBadge";
+import { CheckoutButton, ManageSubscriptionButton } from "@/components/StripeButtons";
 
 const PRO_FEATURES = [
   {
@@ -149,17 +150,22 @@ export default async function ProPage() {
           </div>
           <p className="text-xs text-slate-600 mb-6">Cancel anytime</p>
           {isPro ? (
-            <div className="mt-auto flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
-              <Check size={14} /> You&apos;re on Pro
+            <div className="mt-auto flex flex-col gap-2">
+              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
+                <Check size={14} /> You&apos;re on Pro
+              </div>
+              <div className="flex justify-center">
+                <ManageSubscriptionButton />
+              </div>
+            </div>
+          ) : user ? (
+            <div className="mt-auto">
+              <CheckoutButton plan="monthly" label="Get Pro — $15/mo" />
             </div>
           ) : (
-            <button
-              disabled
-              className="mt-auto py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              title="Payments coming soon"
-            >
-              Coming Soon
-            </button>
+            <a href="/login?redirectTo=/pro" className="mt-auto block text-center py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors">
+              Sign in to subscribe
+            </a>
           )}
         </div>
 
@@ -177,17 +183,22 @@ export default async function ProPage() {
           </div>
           <p className="text-xs text-slate-600 mb-6">$12.50/month · billed annually</p>
           {isPro ? (
-            <div className="mt-auto flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
-              <Check size={14} /> You&apos;re on Pro
+            <div className="mt-auto flex flex-col gap-2">
+              <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
+                <Check size={14} /> You&apos;re on Pro
+              </div>
+              <div className="flex justify-center">
+                <ManageSubscriptionButton />
+              </div>
+            </div>
+          ) : user ? (
+            <div className="mt-auto">
+              <CheckoutButton plan="annual" label="Get Pro — $150/yr" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2" />
             </div>
           ) : (
-            <button
-              disabled
-              className="mt-auto py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm transition-colors disabled:opacity-70 disabled:cursor-not-allowed"
-              title="Payments coming soon"
-            >
-              Coming Soon
-            </button>
+            <a href="/login?redirectTo=/pro" className="mt-auto block text-center py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors">
+              Sign in to subscribe
+            </a>
           )}
         </div>
       </div>

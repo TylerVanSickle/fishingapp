@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { MapPin, Sparkles, TrendingUp, Star, Fish, Waves, Clock, Zap, ChevronRight } from "lucide-react";
+import { MapPin, TrendingUp, Star, Fish, Waves, Clock, Zap, ChevronRight } from "lucide-react";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
 import WhereFishFilters from "@/components/WhereFishFilters";
 import ProBadge from "@/components/ProBadge";
+import ProGate from "@/components/ProGate";
 import { Suspense } from "react";
 
 // Technique → water type scoring
@@ -172,7 +173,43 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
 
   const topSpots = filtered.sort((a, b) => b.composite - a.composite).slice(0, 10);
 
-  const isPreview = !isPro;
+  if (!isPro) {
+    return (
+      <ProGate
+        title="Where to Fish"
+        icon={MapPin}
+        iconColor="text-cyan-400"
+        description="Real-time spot recommendations ranked by solunar timing, weather, community catch data, and your technique — so you always know where to go."
+        features={[
+          "Live solunar scoring for every spot",
+          "Ranked by catches in the last 30 days",
+          "Technique-match filtering (fly, spin, jig…)",
+          "State/region filtering",
+          "Expert technique tips per spot",
+          "Top 10 spots updated in real-time",
+        ]}
+        preview={
+          <div className="max-w-3xl mx-auto px-4 py-8 space-y-3">
+            {[85, 72, 68, 61, 54].map((score, i) => (
+              <div key={i} className="p-5 rounded-2xl border border-white/8 bg-white/2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-black text-slate-500 w-7">#{i + 1}</span>
+                  <div className="flex-1">
+                    <div className="h-4 w-40 bg-white/15 rounded mb-2" />
+                    <div className="h-2 w-24 bg-white/8 rounded mb-3" />
+                    <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                      <div className="h-full rounded-full bg-green-500/50" style={{ width: `${score}%` }} />
+                    </div>
+                  </div>
+                  <div className="text-2xl font-black text-white/50">{score}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        }
+      />
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
@@ -191,20 +228,6 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
           </p>
         </div>
       </div>
-
-      {/* Preview banner for non-pro */}
-      {isPreview && (
-        <div className="mb-6 p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 flex items-center gap-3">
-          <Sparkles size={16} className="text-amber-400 shrink-0" />
-          <div className="flex-1 text-sm">
-            <span className="text-white font-medium">You&apos;re previewing a Pro feature.</span>
-            <span className="text-slate-500 ml-1">Full results + pattern analysis unlock with Pro.</span>
-          </div>
-          <Link href="/pro" className="text-xs px-3 py-1.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 hover:bg-amber-500/30 transition-colors shrink-0 font-medium">
-            Learn more
-          </Link>
-        </div>
-      )}
 
       {/* Filters */}
       <Suspense>
@@ -241,105 +264,75 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
       ) : (
         <div className="space-y-3">
           {topSpots.map((spot, i) => {
-            // For non-pro, blur results beyond #3
-            const blurred = isPreview && i >= 3;
             const tip = technique ? TECHNIQUE_TIPS[technique]?.(spot.water_type) : null;
 
             return (
               <div
                 key={spot.id}
-                className={`rounded-2xl border border-white/8 bg-white/2 overflow-hidden transition-colors ${!blurred ? "hover:border-white/14" : ""}`}
+                className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden transition-colors hover:border-white/14"
               >
-                {blurred ? (
-                  <div className="p-5 blur-sm select-none pointer-events-none">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-black text-slate-700 w-7">#{i + 1}</span>
-                      <div className="flex-1">
-                        <div className="h-4 w-32 bg-white/10 rounded mb-2" />
-                        <div className="h-2 w-48 bg-white/5 rounded" />
+                <Link href={`/spots/${spot.id}`} className="block p-5 group">
+                  <div className="flex items-start gap-3">
+                    {/* Rank */}
+                    <span className={`text-xl font-black w-7 shrink-0 mt-0.5 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-slate-700"}`}>
+                      #{i + 1}
+                    </span>
+
+                    {/* Main content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div>
+                          <h3 className="font-semibold text-slate-200 group-hover:text-white transition-colors">{spot.name}</h3>
+                          <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
+                            <span className="flex items-center gap-1"><Waves size={9} className="shrink-0" />{spot.water_type}</span>
+                            {spot.state && <span>{spot.state}</span>}
+                          </div>
+                        </div>
+                        {/* Composite score */}
+                        <div className="text-right shrink-0">
+                          <div className="text-lg font-black text-white">{spot.composite}</div>
+                          <div className="text-[9px] text-slate-600 uppercase tracking-wide">score</div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                ) : (
-                  <Link href={`/spots/${spot.id}`} className="block p-5 group">
-                    <div className="flex items-start gap-3">
-                      {/* Rank */}
-                      <span className={`text-xl font-black w-7 shrink-0 mt-0.5 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-slate-700"}`}>
-                        #{i + 1}
-                      </span>
 
-                      {/* Main content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <div>
-                            <h3 className="font-semibold text-slate-200 group-hover:text-white transition-colors">{spot.name}</h3>
-                            <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5 flex-wrap">
-                              <span className="flex items-center gap-1"><Waves size={9} className="shrink-0" />{spot.water_type}</span>
-                              {spot.state && <span>{spot.state}</span>}
-                            </div>
-                          </div>
-                          {/* Composite score */}
-                          <div className="text-right shrink-0">
-                            <div className="text-lg font-black text-white">{spot.composite}</div>
-                            <div className="text-[9px] text-slate-600 uppercase tracking-wide">score</div>
-                          </div>
-                        </div>
+                      {/* Score bar */}
+                      <ScoreBar score={spot.composite} />
 
-                        {/* Score bar */}
-                        <ScoreBar score={spot.composite} />
-
-                        {/* Metrics row */}
-                        <div className="flex items-center gap-3 mt-2.5 flex-wrap text-xs text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: spot.solunarLabel.color }} />
-                            Solunar: <span className="font-semibold ml-0.5" style={{ color: spot.solunarLabel.color }}>{spot.solunarLabel.label}</span>
+                      {/* Metrics row */}
+                      <div className="flex items-center gap-3 mt-2.5 flex-wrap text-xs text-slate-500">
+                        <span className="flex items-center gap-1">
+                          <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: spot.solunarLabel.color }} />
+                          Solunar: <span className="font-semibold ml-0.5" style={{ color: spot.solunarLabel.color }}>{spot.solunarLabel.label}</span>
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Fish size={9} />
+                          {spot.recentCatches} catches / 30d
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Star size={9} />
+                          {spot.avgRating.toFixed(1)}
+                        </span>
+                        {technique && (
+                          <span className={`font-medium ${spot.techMatch === 10 ? "text-green-400" : "text-yellow-400"}`}>
+                            {spot.techMatch === 10 ? "✓ Ideal" : "~ Ok"} for {TECHNIQUE_LABELS[technique]}
                           </span>
-                          <span className="flex items-center gap-1">
-                            <Fish size={9} />
-                            {spot.recentCatches} catches / 30d
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Star size={9} />
-                            {spot.avgRating.toFixed(1)}
-                          </span>
-                          {technique && (
-                            <span className={`font-medium ${spot.techMatch === 10 ? "text-green-400" : "text-yellow-400"}`}>
-                              {spot.techMatch === 10 ? "✓ Ideal" : "~ Ok"} for {TECHNIQUE_LABELS[technique]}
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Technique tip */}
-                        {tip && (
-                          <p className="text-xs text-slate-600 mt-2 italic leading-relaxed">
-                            💡 {tip}
-                          </p>
                         )}
                       </div>
 
-                      <ChevronRight size={14} className="text-slate-700 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
+                      {/* Technique tip */}
+                      {tip && (
+                        <p className="text-xs text-slate-600 mt-2 italic leading-relaxed">
+                          💡 {tip}
+                        </p>
+                      )}
                     </div>
-                  </Link>
-                )}
+
+                    <ChevronRight size={14} className="text-slate-700 group-hover:text-blue-400 transition-colors shrink-0 mt-1" />
+                  </div>
+                </Link>
               </div>
             );
           })}
-
-          {/* Upgrade CTA after blurred results */}
-          {isPreview && topSpots.length > 3 && (
-            <div className="p-5 rounded-2xl border border-amber-500/20 bg-amber-500/5 text-center">
-              <Sparkles size={18} className="mx-auto mb-2 text-amber-400" />
-              <p className="text-sm font-medium text-white mb-1">
-                {topSpots.length - 3} more spots are hidden
-              </p>
-              <p className="text-xs text-slate-500 mb-3">
-                Upgrade to Pro to see all results + technique tips + pattern analysis
-              </p>
-              <Link href="/pro" className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm transition-colors">
-                <Sparkles size={13} /> Unlock Pro
-              </Link>
-            </div>
-          )}
         </div>
       )}
     </div>
