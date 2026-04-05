@@ -55,20 +55,24 @@ export default async function FeedPage({
   const feedSolunarScore = computeFishingScore(-98.5);
   const feedSolunarLabel = scoreLabel(feedSolunarScore);
 
-  // Get IDs of people the current user follows
+  // Get follow relationships for the current user
   let followingIds: string[] = [];
+  let mutualFollowIds: Set<string> = new Set();
   if (user) {
-    const { data: follows } = await supabase
-      .from("follows")
-      .select("following_id")
-      .eq("follower_id", user.id);
-    followingIds = (follows ?? []).map((f) => f.following_id);
+    const [{ data: following }, { data: followers }] = await Promise.all([
+      supabase.from("follows").select("following_id").eq("follower_id", user.id),
+      supabase.from("follows").select("follower_id").eq("following_id", user.id),
+    ]);
+    followingIds = (following ?? []).map((f) => f.following_id);
+    const followerIds = new Set((followers ?? []).map((f) => f.follower_id));
+    // Mutual follows = people I follow who also follow me back
+    mutualFollowIds = new Set(followingIds.filter((id) => followerIds.has(id)));
   }
 
   let query = supabase
     .from("catches")
     .select(
-      "id, caught_at, weight_lbs, length_in, notes, photo_url, user_id, is_private, fish_species(name), spots(id, name), baits(name), profiles!user_id(id, username)",
+      "id, caught_at, weight_lbs, length_in, notes, photo_url, user_id, is_private, visibility, fish_species(name), spots(id, name), baits(name), profiles!user_id(id, username)",
     )
     .order("caught_at", { ascending: false })
     .limit(60);
@@ -86,11 +90,18 @@ export default async function FeedPage({
   if (catchError)
     console.error("[feed] catches query error:", catchError.message);
 
-  // Filter private catches in JS — also handles case where is_private column doesn't exist yet
+  // Filter by visibility
   const catches = (rawCatches ?? [])
     .filter((c) => {
+      const vis = (c as Record<string, unknown>).visibility as string | undefined;
       const isPrivate = (c as Record<string, unknown>).is_private;
-      return !isPrivate || c.user_id === user?.id;
+      // Own catches: always show
+      if (c.user_id === user?.id) return true;
+      // Derive effective visibility (fallback to is_private for old rows)
+      const effective = vis ?? (isPrivate ? "private" : "public");
+      if (effective === "public") return true;
+      if (effective === "friends") return mutualFollowIds.has(c.user_id);
+      return false; // private
     })
     .slice(0, 40);
 
@@ -311,11 +322,13 @@ export default async function FeedPage({
                             compact
                           />
                         )}
-                        {c.is_private && (
-                          <span className="inline-flex items-center gap-1 text-xs text-amber-500/70">
-                            <Lock size={10} /> Private
-                          </span>
-                        )}
+                        {(() => {
+                          const vis = (c as Record<string, unknown>).visibility as string | undefined;
+                          const effective = vis ?? (c.is_private ? "private" : "public");
+                          if (effective === "private") return <span className="inline-flex items-center gap-1 text-xs text-amber-500/70"><Lock size={10} /> Private</span>;
+                          if (effective === "friends") return <span className="inline-flex items-center gap-1 text-xs text-green-500/70"><Users size={10} /> Friends</span>;
+                          return null;
+                        })()}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-slate-600">
                         <span>{timeAgo(c.caught_at)}</span>

@@ -2,7 +2,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function updateProfile(data: { username?: string; bio?: string }) {
+export async function updateProfile(data: { username?: string; bio?: string; home_state?: string }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Unauthorized");

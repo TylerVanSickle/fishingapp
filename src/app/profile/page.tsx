@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Fish, MapPin, Trophy, Bookmark, Calendar, Scale, Ruler, Pencil, BarChart3, Download, Lock, Sparkles, Clock, Target } from "lucide-react";
+import { Fish, MapPin, Trophy, Bookmark, Calendar, Scale, Ruler, Pencil, BarChart3, Download, Lock, Sparkles, Clock, Target, Flame, BookOpen, Route, Package, ExternalLink } from "lucide-react";
 import ProBadge from "@/components/ProBadge";
 import ClickablePhoto from "@/components/ClickablePhoto";
 import CatchActions from "@/components/CatchActions";
 import Avatar from "@/components/Avatar";
+import ShareButton from "@/components/ShareButton";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -39,6 +40,29 @@ export default async function ProfilePage() {
   const totalCatches = catches.length;
   const uniqueSpecies = new Set(catches.map((c) => (c.fish_species as unknown as { id: string } | null)?.id).filter(Boolean)).size;
   const uniqueSpots = new Set(catches.map((c) => (c.spots as unknown as { id: string } | null)?.id).filter(Boolean)).size;
+
+  // Total weight
+  const totalWeight = catches.reduce((sum, c) => sum + (c.weight_lbs ?? 0), 0);
+
+  // Fishing streak (consecutive days with at least 1 catch, going back from today)
+  const catchDaySet = new Set(catches.map((c) => new Date(c.caught_at).toISOString().slice(0, 10)));
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i <= 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    if (catchDaySet.has(d.toISOString().slice(0, 10))) {
+      streak++;
+    } else if (i > 0) {
+      break; // streak broken
+    }
+  }
+
+  // Trips count
+  const { count: tripsCount } = await supabase
+    .from("trips")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", user.id);
 
   // ── Catches by month (last 12) ────────────────────────────────────────────
   const now = new Date();
@@ -193,15 +217,13 @@ export default async function ProfilePage() {
           </div>
 
           <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <Link href="/profile/logbook" className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 hover:text-emerald-300 transition-colors">
-              <Fish size={11} /> My Logbook
-            </Link>
-            <Link href="/profile/records" className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/25 text-amber-400 hover:text-amber-300 transition-colors">
-              <Trophy size={11} /> Records
-            </Link>
             <Link href="/profile/edit" className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20 transition-colors">
               <Pencil size={11} /> Edit Profile
             </Link>
+            <Link href={`/anglers/${user.id}`} className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20 transition-colors">
+              <ExternalLink size={11} /> Public Profile
+            </Link>
+            <ShareButton title={`@${profile?.username} on HookLine`} text={`Check out my fishing profile on HookLine`} />
             <a href="/api/export/catches" className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-slate-400 hover:text-slate-200 hover:border-white/20 transition-colors">
               <Download size={11} /> Export CSV
             </a>
@@ -215,19 +237,59 @@ export default async function ProfilePage() {
       </div>
 
       {/* ── Stats row ──────────────────────────────────────────────── */}
-      <div className="grid grid-cols-3 sm:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-3 gap-3">
         {[
           { label: "Catches", value: totalCatches, icon: Fish, color: "text-blue-400", bg: "bg-blue-600/10" },
           { label: "Species", value: uniqueSpecies, icon: Trophy, color: "text-violet-400", bg: "bg-violet-600/10" },
           { label: "Spots Fished", value: uniqueSpots, icon: MapPin, color: "text-cyan-400", bg: "bg-cyan-600/10" },
         ].map(({ label, value, icon: Icon, color, bg }) => (
-          <div key={label} className="p-5 rounded-2xl border border-white/8 bg-white/2 text-center">
-            <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center mx-auto mb-2`}>
-              <Icon size={18} className={color} />
+          <div key={label} className="p-4 rounded-2xl border border-white/8 bg-white/2 text-center">
+            <div className={`w-9 h-9 rounded-xl ${bg} flex items-center justify-center mx-auto mb-2`}>
+              <Icon size={16} className={color} />
             </div>
-            <div className="text-2xl font-bold text-white">{value}</div>
+            <div className="text-xl font-bold text-white">{value}</div>
             <div className="text-xs text-slate-500">{label}</div>
           </div>
+        ))}
+      </div>
+
+      {/* ── Secondary stats ────────────────────────────────────────── */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="p-4 rounded-2xl border border-white/8 bg-white/2 text-center">
+          <div className="w-9 h-9 rounded-xl bg-orange-600/10 flex items-center justify-center mx-auto mb-2">
+            <Flame size={16} className="text-orange-400" />
+          </div>
+          <div className="text-xl font-bold text-white">{streak}</div>
+          <div className="text-xs text-slate-500">Day Streak</div>
+        </div>
+        <div className="p-4 rounded-2xl border border-white/8 bg-white/2 text-center">
+          <div className="w-9 h-9 rounded-xl bg-emerald-600/10 flex items-center justify-center mx-auto mb-2">
+            <Scale size={16} className="text-emerald-400" />
+          </div>
+          <div className="text-xl font-bold text-white">{totalWeight > 0 ? `${totalWeight.toFixed(1)}` : "—"}</div>
+          <div className="text-xs text-slate-500">Total lbs</div>
+        </div>
+        <div className="p-4 rounded-2xl border border-white/8 bg-white/2 text-center">
+          <div className="w-9 h-9 rounded-xl bg-sky-600/10 flex items-center justify-center mx-auto mb-2">
+            <Route size={16} className="text-sky-400" />
+          </div>
+          <div className="text-xl font-bold text-white">{tripsCount ?? 0}</div>
+          <div className="text-xs text-slate-500">Trips</div>
+        </div>
+      </div>
+
+      {/* ── Quick actions ───────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { href: "/profile/logbook", label: "My Logbook",  icon: BookOpen,  color: "text-emerald-400", bg: "bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40" },
+          { href: "/trips",           label: "My Trips",    icon: Route,     color: "text-sky-400",     bg: "bg-sky-500/10 border-sky-500/20 hover:border-sky-500/40" },
+          { href: "/profile/records", label: "Records",     icon: Trophy,    color: "text-amber-400",   bg: "bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40" },
+          { href: "/gear",            label: "Gear Tracker",icon: Package,   color: "text-violet-400",  bg: "bg-violet-500/10 border-violet-500/20 hover:border-violet-500/40" },
+        ].map(({ href, label, icon: Icon, color, bg }) => (
+          <Link key={href} href={href} className={`flex items-center gap-3 p-4 rounded-2xl border transition-colors ${bg}`}>
+            <Icon size={18} className={color} />
+            <span className="text-sm font-medium text-slate-200">{label}</span>
+          </Link>
         ))}
       </div>
 

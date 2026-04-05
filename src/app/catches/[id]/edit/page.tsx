@@ -5,8 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/Select";
 import SearchableSelect from "@/components/ui/SearchableSelect";
-import { Fish, Scale, Ruler, CalendarDays, Camera, X, Lock, ArrowLeft, Save } from "lucide-react";
+import { Fish, Scale, Ruler, CalendarDays, Camera, X, Lock, ArrowLeft, Save, Users, Globe } from "lucide-react";
 import Link from "next/link";
+
+type Visibility = "public" | "friends" | "private";
 
 const inputClass = "w-full px-3.5 py-2.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors";
 const labelClass = "block text-sm text-slate-400 mb-1.5";
@@ -41,7 +43,7 @@ export default function EditCatchPage() {
   const [lengthIn, setLengthIn] = useState("");
   const [caughtAt, setCaughtAt] = useState("");
   const [notes, setNotes] = useState("");
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>("public");
   const [existingPhotoUrl, setExistingPhotoUrl] = useState<string | null>(null);
   const [newPhotoFile, setNewPhotoFile] = useState<File | null>(null);
   const [newPhotoPreview, setNewPhotoPreview] = useState<string | null>(null);
@@ -67,7 +69,9 @@ export default function EditCatchPage() {
       setLengthIn(c.length_in != null ? String(c.length_in) : "");
       setCaughtAt(c.caught_at ? new Date(c.caught_at).toISOString().slice(0, 16) : "");
       setNotes(c.notes ?? "");
-      setIsPrivate(!!(c as Record<string, unknown>).is_private);
+      const v = (c as Record<string, unknown>).visibility as Visibility | undefined;
+      const priv = !!(c as Record<string, unknown>).is_private;
+      setVisibility(v ?? (priv ? "private" : "public"));
       setExistingPhotoUrl(c.photo_url ?? null);
 
       if (s) setSpots(s as Spot[]);
@@ -113,7 +117,8 @@ export default function EditCatchPage() {
       caught_at: new Date(caughtAt).toISOString(),
       notes: notes || null,
       photo_url: photoUrl,
-      is_private: isPrivate,
+      visibility,
+      is_private: visibility === "private",
     }).eq("id", catchId).eq("user_id", user.id);
 
     if (err) { setError(err.message); setSaving(false); return; }
@@ -231,18 +236,36 @@ export default function EditCatchPage() {
           )}
         </div>
 
-        {/* Privacy */}
-        <button type="button" onClick={() => setIsPrivate(p => !p)}
-          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border transition-colors text-left ${isPrivate ? "border-amber-500/30 bg-amber-500/8 text-amber-300" : "border-white/8 bg-white/2 text-slate-400 hover:border-white/15"}`}>
-          <Lock size={15} className={isPrivate ? "text-amber-400" : "text-slate-600"} />
-          <div className="flex-1">
-            <p className="text-sm font-medium">{isPrivate ? "Private catch" : "Public catch"}</p>
-            <p className="text-xs text-slate-600 mt-0.5">{isPrivate ? "Only you can see this" : "Visible to the community"}</p>
+        {/* Visibility selector */}
+        <div>
+          <p className="text-xs text-slate-500 mb-2 font-medium">Who can see this catch?</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: "public",  icon: Globe,  label: "Public",  desc: "Everyone" },
+              { value: "friends", icon: Users,  label: "Friends", desc: "Mutual follows" },
+              { value: "private", icon: Lock,   label: "Private", desc: "Only you" },
+            ] as { value: Visibility; icon: React.ElementType; label: string; desc: string }[]).map(({ value, icon: Icon, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVisibility(value)}
+                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-center transition-colors ${
+                  visibility === value
+                    ? value === "public"
+                      ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
+                      : value === "friends"
+                      ? "border-green-500/40 bg-green-500/10 text-green-400"
+                      : "border-amber-500/30 bg-amber-500/8 text-amber-400"
+                    : "border-white/8 bg-white/2 text-slate-500 hover:border-white/15"
+                }`}
+              >
+                <Icon size={16} />
+                <span className="text-xs font-semibold">{label}</span>
+                <span className="text-[10px] text-slate-600">{desc}</span>
+              </button>
+            ))}
           </div>
-          <div className={`w-9 h-5 rounded-full transition-colors ${isPrivate ? "bg-amber-500" : "bg-white/10"}`}>
-            <div className={`w-3.5 h-3.5 rounded-full bg-white mt-0.75 transition-all ${isPrivate ? "ml-4.5" : "ml-0.75"}`} />
-          </div>
-        </button>
+        </div>
 
         {error && <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20"><p className="text-red-400 text-sm">{error}</p></div>}
 

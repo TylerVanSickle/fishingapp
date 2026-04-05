@@ -35,9 +35,14 @@ export default async function LeaderboardPage() {
       .select("user_id, fish_id, is_private, profiles!user_id(id, username)"),
   ]);
 
+  function isPublic(c: Record<string, unknown>) {
+    const vis = c.visibility as string | undefined;
+    return (vis ?? (c.is_private ? "private" : "public")) === "public";
+  }
+
   const monthlyCounts: Record<string, { id: string; username: string; count: number }> = {};
   monthlyCatches?.forEach((c) => {
-    if ((c as Record<string, unknown>).is_private) return;
+    if (!isPublic(c as Record<string, unknown>)) return;
     const profile = c.profiles as unknown as { id: string; username: string } | null;
     if (!profile) return;
     monthlyCounts[c.user_id] = monthlyCounts[c.user_id] ?? { id: profile.id, username: profile.username, count: 0 };
@@ -47,7 +52,7 @@ export default async function LeaderboardPage() {
 
   const speciesMap: Record<string, { id: string; username: string; species: Set<string> }> = {};
   speciesCatches?.forEach((c) => {
-    if ((c as Record<string, unknown>).is_private) return;
+    if (!isPublic(c as Record<string, unknown>)) return;
     const profile = c.profiles as unknown as { id: string; username: string } | null;
     if (!profile) return;
     if (!speciesMap[c.user_id]) speciesMap[c.user_id] = { id: profile.id, username: profile.username, species: new Set() };
@@ -59,7 +64,7 @@ export default async function LeaderboardPage() {
     .slice(0, 10);
 
   const publicBiggest = (biggestCatches ?? [])
-    .filter((c) => !(c as Record<string, unknown>).is_private)
+    .filter((c) => isPublic(c as Record<string, unknown>))
     .slice(0, 10);
 
   const monthName = new Date().toLocaleString("default", { month: "long", year: "numeric" });

@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui/Select";
 import SearchableSelect from "@/components/ui/SearchableSelect";
-import { Fish, CalendarDays, Camera, X, Lock } from "lucide-react";
+import { Fish, CalendarDays, Camera, X, Lock, Users, Globe, ImagePlus } from "lucide-react";
+import { isNative, takeCameraPhoto, hapticSuccess } from "@/lib/native";
+
+type Visibility = "public" | "friends" | "private";
 
 type Spot = { id: string; name: string; state: string | null; water_type: string };
 type FishSpecies = { id: string; name: string };
@@ -45,7 +48,8 @@ export default function LogCatchPage() {
   const [notes, setNotes] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
-  const [isPrivate, setIsPrivate] = useState(false);
+  const [visibility, setVisibility] = useState<Visibility>("public");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,8 +94,25 @@ export default function LogCatchPage() {
 
   function clearPhoto() {
     setPhotoFile(null);
-    if (photoPreview) URL.revokeObjectURL(photoPreview);
+    if (photoPreview && photoPreview.startsWith("blob:")) URL.revokeObjectURL(photoPreview);
     setPhotoPreview(null);
+  }
+
+  async function handlePhotoTap() {
+    if (isNative()) {
+      // Native: show camera/library sheet via Capacitor
+      const dataUrl = await takeCameraPhoto();
+      if (!dataUrl) return;
+      // Convert dataUrl → File for the Supabase upload
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `catch-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setPhotoFile(file);
+      setPhotoPreview(dataUrl);
+    } else {
+      // Web: trigger the hidden file input
+      fileInputRef.current?.click();
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -125,13 +146,15 @@ export default function LogCatchPage() {
       caught_at: new Date(caughtAt).toISOString(),
       notes: notes || null,
       photo_url: photoUrl,
-      is_private: isPrivate,
+      visibility,
+      is_private: visibility === "private",
     });
 
     if (err) {
       setError(err.message);
       setLoading(false);
     } else {
+      await hapticSuccess();
       router.refresh();
       router.push(`/spots/${spotId}`);
     }
@@ -243,11 +266,11 @@ export default function LogCatchPage() {
 
         {/* Photo upload */}
         <div>
-          <label className={labelClass}>
+          <p className={labelClass}>
             <span className="flex items-center gap-1.5">
               <Camera size={13} className="text-slate-500" /> Photo (optional)
             </span>
-          </label>
+          </p>
           {photoPreview ? (
             <div className="relative inline-block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -259,39 +282,66 @@ export default function LogCatchPage() {
               >
                 <X size={12} />
               </button>
+              <button
+                type="button"
+                onClick={handlePhotoTap}
+                className="absolute bottom-2 right-2 flex items-center gap-1 px-2 py-1 rounded-lg bg-black/60 text-white text-xs hover:bg-black/80 transition-colors"
+              >
+                <ImagePlus size={11} /> Change
+              </button>
             </div>
           ) : (
-            <label className="flex flex-col items-center justify-center h-24 rounded-xl border border-dashed border-white/15 cursor-pointer hover:border-blue-500/40 hover:bg-blue-500/5 transition-colors">
+            <button
+              type="button"
+              onClick={handlePhotoTap}
+              className="w-full flex flex-col items-center justify-center h-24 rounded-xl border border-dashed border-white/15 cursor-pointer hover:border-blue-500/40 hover:bg-blue-500/5 transition-colors"
+            >
               <Camera size={20} className="text-slate-600 mb-1" />
-              <span className="text-xs text-slate-600">Click to add a photo</span>
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
-            </label>
+              <span className="text-xs text-slate-600">
+                {isNative() ? "Take or choose a photo" : "Click to add a photo"}
+              </span>
+            </button>
           )}
+          {/* Hidden file input for web fallback */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handlePhotoChange}
+            className="hidden"
+          />
         </div>
 
-        {/* Privacy toggle */}
-        <button
-          type="button"
-          onClick={() => setIsPrivate((p) => !p)}
-          className={`flex items-center gap-3 w-full px-4 py-3 rounded-xl border transition-colors text-left ${
-            isPrivate
-              ? "border-amber-500/30 bg-amber-500/8 text-amber-300"
-              : "border-white/8 bg-white/2 text-slate-400 hover:border-white/15"
-          }`}
-        >
-          <Lock size={15} className={isPrivate ? "text-amber-400" : "text-slate-600"} />
-          <div className="flex-1">
-            <p className="text-sm font-medium">
-              {isPrivate ? "Private catch" : "Public catch"}
-            </p>
-            <p className="text-xs text-slate-600 mt-0.5">
-              {isPrivate ? "Only you can see this" : "Visible to the community"}
-            </p>
+        {/* Visibility selector */}
+        <div>
+          <p className="text-xs text-slate-500 mb-2 font-medium">Who can see this catch?</p>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: "public",  icon: Globe,  label: "Public",  desc: "Everyone" },
+              { value: "friends", icon: Users,  label: "Friends", desc: "Mutual follows" },
+              { value: "private", icon: Lock,   label: "Private", desc: "Only you" },
+            ] as { value: Visibility; icon: React.ElementType; label: string; desc: string }[]).map(({ value, icon: Icon, label, desc }) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVisibility(value)}
+                className={`flex flex-col items-center gap-1.5 py-3 px-2 rounded-xl border text-center transition-colors ${
+                  visibility === value
+                    ? value === "public"
+                      ? "border-blue-500/40 bg-blue-500/10 text-blue-400"
+                      : value === "friends"
+                      ? "border-green-500/40 bg-green-500/10 text-green-400"
+                      : "border-amber-500/30 bg-amber-500/8 text-amber-400"
+                    : "border-white/8 bg-white/2 text-slate-500 hover:border-white/15"
+                }`}
+              >
+                <Icon size={16} />
+                <span className="text-xs font-semibold">{label}</span>
+                <span className="text-[10px] text-slate-600">{desc}</span>
+              </button>
+            ))}
           </div>
-          <div className={`w-9 h-5 rounded-full transition-colors ${isPrivate ? "bg-amber-500" : "bg-white/10"}`}>
-            <div className={`w-3.5 h-3.5 rounded-full bg-white mt-0.75 transition-all ${isPrivate ? "ml-4.5" : "ml-0.75"}`} />
-          </div>
-        </button>
+        </div>
 
         {error && (
           <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20">

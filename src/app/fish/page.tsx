@@ -27,7 +27,7 @@ export default async function FishPage() {
         <div>
           <h1 className="text-2xl font-bold text-white leading-tight">Fish Species</h1>
           <p className="text-slate-500 text-xs">
-            {species?.length ?? 0} species · identification guides, habitat info &amp; fishing tips
+            {species?.length ?? 0 } <span> </span> species · identification guides, habitat info &amp; fishing tips
           </p>
         </div>
       </div>

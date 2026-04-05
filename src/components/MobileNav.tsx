@@ -1,38 +1,89 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Map, Compass, Bell, User, Plus } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import {
+  Map, Users, Bell, User, Plus, Grid3x3, X,
+  Compass, Trophy, Fish, Waves, CloudSun,
+  BookOpen, Package, Route, FileText, Star, MapPin,
+} from "lucide-react";
+import { useState, useEffect } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
-const TABS_LEFT = [
-  { href: "/map",     label: "Map",     icon: Map },
-  { href: "/explore", label: "Explore", icon: Compass },
-];
-const TABS_RIGHT = [
-  { href: "/notifications", label: "Alerts", icon: Bell },
-  { href: "/profile",       label: "Profile", icon: User },
+const MORE_SECTIONS = [
+  {
+    label: "Discover",
+    items: [
+      { href: "/explore",       label: "Explore",           icon: Compass },
+      { href: "/spots",         label: "Spots",             icon: MapPin },
+      { href: "/fish",          label: "Species Guide",     icon: Fish },
+      { href: "/leaderboard",   label: "Leaderboard",       icon: Trophy },
+    ],
+  },
+  {
+    label: "Tools",
+    items: [
+      { href: "/forecast",      label: "Fishing Forecast",  icon: CloudSun },
+      { href: "/target",        label: "Species Targeting", icon: Star },
+      { href: "/catches/map",   label: "Catch Map",         icon: Waves },
+      { href: "/regulations",   label: "Regulations",       icon: FileText },
+    ],
+  },
+  {
+    label: "My Fishing",
+    items: [
+      { href: "/profile/logbook", label: "My Logbook",     icon: BookOpen },
+      { href: "/trips",           label: "Trips",          icon: Route },
+      { href: "/gear",            label: "Gear Tracker",   icon: Package, pro: true },
+      { href: "/journal",         label: "Journal",        icon: BookOpen, pro: true },
+    ],
+  },
+  {
+    label: "Pro",
+    items: [
+      { href: "/pro/where-to-fish", label: "Where to Fish", icon: MapPin, pro: true },
+    ],
+  },
 ];
 
 export default function MobileNav({
   user,
   unreadCount = 0,
+  isPro = false,
 }: {
   user: SupabaseUser | null;
   unreadCount?: number;
+  isPro?: boolean;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
+  const [sheetOpen, setSheetOpen] = useState(false);
+
+  // Close sheet on navigation
+  useEffect(() => { setSheetOpen(false); }, [pathname]);
+
+  // Lock body scroll when sheet is open
+  useEffect(() => {
+    document.body.style.overflow = sheetOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [sheetOpen]);
+
+  function navClass(href: string) {
+    const active = pathname === href || pathname.startsWith(href + "/");
+    return `flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${
+      active ? "text-blue-400" : "text-slate-500"
+    }`;
+  }
 
   if (!user) {
-    // Minimal nav for logged-out
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#060d1a]/95 backdrop-blur-xl border-t border-white/8 pb-safe">
         <div className="flex items-center justify-around px-2 py-2">
-          <Link href="/map" className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors ${pathname === "/map" ? "text-blue-400" : "text-slate-500"}`}>
+          <Link href="/map" className={navClass("/map")}>
             <Map size={22} strokeWidth={pathname === "/map" ? 2.5 : 1.75} />
             <span className="text-[10px] font-medium">Map</span>
           </Link>
-          <Link href="/explore" className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors ${pathname === "/explore" ? "text-blue-400" : "text-slate-500"}`}>
+          <Link href="/explore" className={navClass("/explore")}>
             <Compass size={22} strokeWidth={pathname === "/explore" ? 2.5 : 1.75} />
             <span className="text-[10px] font-medium">Explore</span>
           </Link>
@@ -46,54 +97,168 @@ export default function MobileNav({
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#060d1a]/95 backdrop-blur-xl border-t border-white/8 pb-safe">
-      <div className="flex items-center justify-around px-2 py-2">
-        {/* Left tabs */}
-        {TABS_LEFT.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${active ? "text-blue-400" : "text-slate-500 hover:text-slate-300"}`}
-            >
-              <Icon size={22} strokeWidth={active ? 2.5 : 1.75} />
-              <span className="text-[10px] font-medium">{label}</span>
-            </Link>
-          );
-        })}
+    <>
+      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#060d1a]/95 backdrop-blur-xl border-t border-white/8 pb-safe">
+        <div className="flex items-center justify-around px-2 py-2">
 
-        {/* Center FAB */}
-        <Link href="/log-catch" className="flex flex-col items-center gap-0.5 -mt-5">
-          <div className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-600/40 transition-colors border-4 border-[#060d1a]">
-            <Plus size={26} className="text-white" strokeWidth={2.5} />
+          {/* Map */}
+          <Link href="/map" className={navClass("/map")}>
+            <Map size={22} strokeWidth={pathname === "/map" ? 2.5 : 1.75} />
+            <span className="text-[10px] font-medium">Map</span>
+          </Link>
+
+          {/* Feed */}
+          <Link href="/feed" className={navClass("/feed")}>
+            <Users size={22} strokeWidth={pathname === "/feed" ? 2.5 : 1.75} />
+            <span className="text-[10px] font-medium">Feed</span>
+          </Link>
+
+          {/* Center FAB */}
+          <Link href="/log-catch" className="flex flex-col items-center gap-0.5 -mt-5">
+            <div className="w-14 h-14 rounded-full bg-blue-600 hover:bg-blue-500 flex items-center justify-center shadow-lg shadow-blue-600/40 transition-colors border-4 border-[#060d1a]">
+              <Plus size={26} className="text-white" strokeWidth={2.5} />
+            </div>
+            <span className="text-[10px] font-medium text-slate-500 mt-0.5">Log</span>
+          </Link>
+
+          {/* Profile with notification badge */}
+          <Link href="/profile" className={`relative ${navClass("/profile")}`}>
+            <User size={22} strokeWidth={pathname === "/profile" ? 2.5 : 1.75} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1.5 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-blue-600 text-white rounded-full">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+            <span className="text-[10px] font-medium">Profile</span>
+          </Link>
+
+          {/* More */}
+          <button
+            onClick={() => setSheetOpen(true)}
+            className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${sheetOpen ? "text-blue-400" : "text-slate-500"}`}
+          >
+            <Grid3x3 size={22} strokeWidth={sheetOpen ? 2.5 : 1.75} />
+            <span className="text-[10px] font-medium">More</span>
+          </button>
+
+        </div>
+      </nav>
+
+      {/* Bottom sheet backdrop */}
+      {sheetOpen && (
+        <div
+          className="fixed inset-0 z-60 md:hidden bg-black/60 backdrop-blur-sm"
+          onClick={() => setSheetOpen(false)}
+        />
+      )}
+
+      {/* Bottom sheet */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 z-70 md:hidden bg-[#0b1628] border-t border-white/10 rounded-t-3xl transition-transform duration-300 ${
+          sheetOpen ? "translate-y-0" : "translate-y-full"
+        }`}
+        style={{ maxHeight: "80vh", overflowY: "auto" }}
+      >
+        {/* Handle + header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-3 sticky top-0 bg-[#0b1628] border-b border-white/6">
+          <div className="w-10 h-1 rounded-full bg-white/15 mx-auto absolute left-1/2 -translate-x-1/2 top-3" />
+          <span className="text-sm font-semibold text-slate-300 pt-2">Menu</span>
+          <button onClick={() => setSheetOpen(false)} className="text-slate-500 hover:text-slate-300 pt-2">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="px-4 py-4 space-y-5 pb-32">
+          {MORE_SECTIONS.map((section) => {
+            // Hide pro-only section if not pro (show upgrade prompt instead)
+            const visibleItems = section.items.filter((item) => !item.pro || isPro);
+            const proItems = section.items.filter((item) => item.pro && !isPro);
+
+            if (visibleItems.length === 0 && section.label === "Pro") {
+              // Show upgrade CTA
+              return (
+                <div key={section.label}>
+                  <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold mb-2 px-1">{section.label}</p>
+                  <Link
+                    href="/pro"
+                    className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-sm font-medium"
+                  >
+                    <span className="text-lg">✦</span>
+                    Upgrade to Pro
+                  </Link>
+                </div>
+              );
+            }
+
+            return (
+              <div key={section.label}>
+                <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold mb-2 px-1">{section.label}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {visibleItems.map(({ href, label, icon: Icon, pro }) => {
+                    const active = pathname === href || pathname.startsWith(href + "/");
+                    return (
+                      <Link
+                        key={href}
+                        href={href}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                          active
+                            ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                            : "bg-white/3 border-white/8 text-slate-300 hover:bg-white/6"
+                        }`}
+                      >
+                        <Icon size={16} className={pro ? "text-amber-400" : undefined} />
+                        <span className="text-sm font-medium leading-tight">{label}</span>
+                      </Link>
+                    );
+                  })}
+                  {/* Pro locked items */}
+                  {proItems.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href="/pro"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/6 bg-white/2 text-slate-600 opacity-60"
+                    >
+                      <Icon size={16} />
+                      <span className="text-sm font-medium leading-tight">{label}</span>
+                      <span className="ml-auto text-[9px] text-amber-500/60">PRO</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Notifications link */}
+          <div>
+            <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold mb-2 px-1">Account</p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/notifications"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                  pathname === "/notifications"
+                    ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                    : "bg-white/3 border-white/8 text-slate-300"
+                }`}
+              >
+                <Bell size={16} />
+                <span className="text-sm font-medium">Alerts</span>
+                {unreadCount > 0 && (
+                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white rounded-full px-1.5 py-0.5">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href="/profile/edit"
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3 text-slate-300"
+              >
+                <User size={16} />
+                <span className="text-sm font-medium">Edit Profile</span>
+              </Link>
+            </div>
           </div>
-          <span className="text-[10px] font-medium text-slate-500 mt-0.5">Log</span>
-        </Link>
-
-        {/* Alerts with badge */}
-        <Link
-          href="/notifications"
-          className={`relative flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${pathname === "/notifications" ? "text-blue-400" : "text-slate-500 hover:text-slate-300"}`}
-        >
-          <Bell size={22} strokeWidth={pathname === "/notifications" ? 2.5 : 1.75} />
-          {unreadCount > 0 && (
-            <span className="absolute top-1 right-1.5 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-blue-600 text-white rounded-full">
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </span>
-          )}
-          <span className="text-[10px] font-medium">Alerts</span>
-        </Link>
-
-        {/* Profile */}
-        <Link
-          href="/profile"
-          className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors ${pathname === "/profile" ? "text-blue-400" : "text-slate-500 hover:text-slate-300"}`}
-        >
-          <User size={22} strokeWidth={pathname === "/profile" ? 2.5 : 1.75} />
-          <span className="text-[10px] font-medium">Profile</span>
-        </Link>
+        </div>
       </div>
-    </nav>
+    </>
   );
 }

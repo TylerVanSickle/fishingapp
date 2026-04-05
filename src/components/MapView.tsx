@@ -6,7 +6,7 @@ import type { MapRef, MapMouseEvent } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import type { Spot } from "@/types/database";
 import SpotPanel from "./SpotPanel";
-import { LocateFixed, ChevronDown, Layers, Flame, RotateCcw, X, Fish, MapPin } from "lucide-react";
+import { LocateFixed, ChevronDown, Layers, Flame, RotateCcw, X, Fish, MapPin, Home } from "lucide-react";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
 import Link from "next/link";
 
@@ -28,6 +28,57 @@ type SpotWithFish = Spot & {
 };
 
 const US_CENTER = { longitude: -98.58, latitude: 39.83, zoom: 4 };
+
+const STATE_CENTERS: Record<string, { longitude: number; latitude: number; zoom: number }> = {
+  Alabama: { longitude: -86.79, latitude: 32.81, zoom: 7 },
+  Arizona: { longitude: -111.65, latitude: 34.05, zoom: 7 },
+  Arkansas: { longitude: -92.37, latitude: 34.97, zoom: 7 },
+  California: { longitude: -119.68, latitude: 36.78, zoom: 6 },
+  Colorado: { longitude: -105.55, latitude: 39.06, zoom: 7 },
+  Connecticut: { longitude: -72.76, latitude: 41.60, zoom: 9 },
+  Delaware: { longitude: -75.51, latitude: 39.32, zoom: 9 },
+  Florida: { longitude: -81.52, latitude: 27.99, zoom: 7 },
+  Georgia: { longitude: -83.44, latitude: 32.16, zoom: 7 },
+  Idaho: { longitude: -114.48, latitude: 44.07, zoom: 7 },
+  Illinois: { longitude: -88.99, latitude: 40.35, zoom: 7 },
+  Indiana: { longitude: -86.13, latitude: 40.27, zoom: 7 },
+  Iowa: { longitude: -93.21, latitude: 42.01, zoom: 7 },
+  Kansas: { longitude: -98.48, latitude: 38.53, zoom: 7 },
+  Kentucky: { longitude: -84.27, latitude: 37.64, zoom: 7 },
+  Louisiana: { longitude: -91.87, latitude: 31.24, zoom: 7 },
+  Maine: { longitude: -69.38, latitude: 45.37, zoom: 7 },
+  Maryland: { longitude: -76.80, latitude: 39.05, zoom: 8 },
+  Massachusetts: { longitude: -71.53, latitude: 42.41, zoom: 8 },
+  Michigan: { longitude: -85.60, latitude: 44.31, zoom: 7 },
+  Minnesota: { longitude: -94.30, latitude: 46.39, zoom: 7 },
+  Mississippi: { longitude: -89.68, latitude: 32.35, zoom: 7 },
+  Missouri: { longitude: -92.29, latitude: 38.46, zoom: 7 },
+  Montana: { longitude: -110.45, latitude: 46.96, zoom: 6 },
+  Nebraska: { longitude: -99.90, latitude: 41.49, zoom: 7 },
+  Nevada: { longitude: -116.42, latitude: 38.50, zoom: 7 },
+  "New Hampshire": { longitude: -71.56, latitude: 43.45, zoom: 8 },
+  "New Jersey": { longitude: -74.40, latitude: 40.06, zoom: 8 },
+  "New Mexico": { longitude: -106.11, latitude: 34.31, zoom: 7 },
+  "New York": { longitude: -75.50, latitude: 42.94, zoom: 7 },
+  "North Carolina": { longitude: -79.81, latitude: 35.63, zoom: 7 },
+  "North Dakota": { longitude: -100.47, latitude: 47.53, zoom: 7 },
+  Ohio: { longitude: -82.76, latitude: 40.39, zoom: 7 },
+  Oklahoma: { longitude: -97.09, latitude: 35.57, zoom: 7 },
+  Oregon: { longitude: -120.55, latitude: 44.10, zoom: 7 },
+  Pennsylvania: { longitude: -77.21, latitude: 40.59, zoom: 7 },
+  "Rhode Island": { longitude: -71.51, latitude: 41.68, zoom: 10 },
+  "South Carolina": { longitude: -80.95, latitude: 33.86, zoom: 7 },
+  "South Dakota": { longitude: -99.44, latitude: 44.30, zoom: 7 },
+  Tennessee: { longitude: -86.69, latitude: 35.75, zoom: 7 },
+  Texas: { longitude: -99.34, latitude: 31.47, zoom: 6 },
+  Utah: { longitude: -111.09, latitude: 39.32, zoom: 7 },
+  Vermont: { longitude: -72.71, latitude: 44.05, zoom: 8 },
+  Virginia: { longitude: -78.46, latitude: 37.77, zoom: 7 },
+  Washington: { longitude: -120.74, latitude: 47.75, zoom: 7 },
+  "West Virginia": { longitude: -80.95, latitude: 38.49, zoom: 7 },
+  Wisconsin: { longitude: -89.62, latitude: 44.27, zoom: 7 },
+  Wyoming: { longitude: -107.30, latitude: 43.08, zoom: 7 },
+};
 
 const WATER_GROUPS = [
   { id: "all",       label: "All Spots",        types: null },
@@ -53,7 +104,10 @@ const WT_STROKE: Record<string, string> = {
   pond:      "#6ee7b7",
 };
 
-export default function MapView({ spots, heatmapPoints = [] }: { spots: SpotWithFish[]; heatmapPoints?: [number, number][] }) {
+export default function MapView({ spots, heatmapPoints = [], homeState = null }: { spots: SpotWithFish[]; heatmapPoints?: [number, number][]; homeState?: string | null }) {
+  const homeCenter = homeState ? (STATE_CENTERS[homeState] ?? US_CENTER) : US_CENTER;
+  const initialCenter = homeState ? homeCenter : US_CENTER;
+
   const mapRef = useRef<MapRef>(null);
   const [selectedSpot, setSelectedSpot] = useState<SpotWithFish | null>(null);
   const [waterBody, setWaterBody] = useState<WaterBodyPanel | null>(null);
@@ -235,6 +289,15 @@ export default function MapView({ spots, heatmapPoints = [] }: { spots: SpotWith
     setStateFilter("all");
   }
 
+  function handleGoHome() {
+    mapRef.current?.flyTo({
+      center: [homeCenter.longitude, homeCenter.latitude],
+      zoom: homeCenter.zoom,
+      duration: 1200,
+    });
+    if (homeState) setStateFilter(homeState);
+  }
+
   function handleNearMe() {
     if (!navigator.geolocation) {
       setGeoError("Geolocation not supported by your browser");
@@ -325,6 +388,17 @@ export default function MapView({ spots, heatmapPoints = [] }: { spots: SpotWith
           </div>
         </div>
 
+        {/* Home state button */}
+        {homeState && (
+          <button
+            onClick={handleGoHome}
+            className="absolute bottom-32 right-4 z-10 w-10 h-10 rounded-full bg-[#070e1c]/90 border border-white/12 flex items-center justify-center text-slate-300 hover:text-amber-400 hover:border-amber-500/40 transition-colors shadow-lg backdrop-blur-sm"
+            title={`Go to ${homeState}`}
+          >
+            <Home size={16} />
+          </button>
+        )}
+
         {/* Near Me button */}
         <button
           onClick={handleNearMe}
@@ -399,7 +473,7 @@ export default function MapView({ spots, heatmapPoints = [] }: { spots: SpotWith
         <MapGL
           ref={mapRef}
           mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-          initialViewState={US_CENTER}
+          initialViewState={initialCenter}
           style={{ width: "100%", height: "100%" }}
           mapStyle={MAP_STYLES[styleIdx].style}
           interactiveLayerIds={["clusters", "unclustered-point", "water-clickable", "waterway-clickable"]}

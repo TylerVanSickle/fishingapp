@@ -4,6 +4,13 @@ import MapView from "@/components/MapView";
 export default async function MapPage() {
   const supabase = await createClient();
 
+  const { data: { user } } = await supabase.auth.getUser();
+  let homeState: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase.from("profiles").select("home_state").eq("id", user.id).single();
+    homeState = (profile as { home_state?: string } | null)?.home_state ?? null;
+  }
+
   const [{ data: spots }, { data: catchLocations }] = await Promise.all([
     supabase
       .from("spots")
@@ -27,7 +34,7 @@ export default async function MapPage() {
 
   return (
     <div className="h-[calc(100vh-64px)] w-full">
-      <MapView spots={spots ?? []} heatmapPoints={heatmapPoints} />
+      <MapView spots={spots ?? []} heatmapPoints={heatmapPoints} homeState={homeState} />
     </div>
   );
 }

@@ -62,29 +62,43 @@ export default async function AnglerProfilePage({
       .eq("id", id)
       .single(),
     supabase.from("catches")
-      .select("id, caught_at, weight_lbs, length_in, notes, photo_url, fish_species(name), spots(id, name), baits(name)")
+      .select("id, caught_at, weight_lbs, length_in, notes, photo_url, is_private, visibility, fish_species(name), spots(id, name), baits(name)")
       .eq("user_id", id)
       .order("caught_at", { ascending: false })
-      .limit(30),
+      .limit(60),
   ]);
 
   if (!profile) notFound();
 
-  // Follow counts + is-following check
-  const [{ count: followerCount }, { count: followingCount }, followRow] = await Promise.all([
+  // Follow counts + is-following check + mutual follow check
+  const [{ count: followerCount }, { count: followingCount }, followRow, followBackRow] = await Promise.all([
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", id),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", id),
     currentUser
       ? supabase.from("follows").select("follower_id").eq("follower_id", currentUser.id).eq("following_id", id).maybeSingle()
       : Promise.resolve({ data: null }),
+    currentUser
+      ? supabase.from("follows").select("follower_id").eq("follower_id", id).eq("following_id", currentUser.id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const isFollowing = !!(followRow as { data: unknown }).data;
   const isOwnProfile = currentUser?.id === id;
+  const isMutualFollow = isFollowing && !!(followBackRow as { data: unknown }).data;
+
+  // Filter catches by visibility
+  const visibleCatches = (catches ?? []).filter((c) => {
+    if (isOwnProfile) return true;
+    const vis = (c as Record<string, unknown>).visibility as string | undefined;
+    const effective = vis ?? ((c as Record<string, unknown>).is_private ? "private" : "public");
+    if (effective === "public") return true;
+    if (effective === "friends") return isMutualFollow;
+    return false;
+  }).slice(0, 30);
   const profileIsPro = !!(profile as unknown as { is_pro?: boolean }).is_pro;
 
-  const totalCatches = catches?.length ?? 0;
-  const uniqueSpecies = new Set(catches?.map((c) => (c.fish_species as unknown as { name: string } | null)?.name).filter(Boolean)).size;
+  const totalCatches = visibleCatches.length;
+  const uniqueSpecies = new Set(visibleCatches.map((c) => (c.fish_species as unknown as { name: string } | null)?.name).filter(Boolean)).size;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -149,11 +163,11 @@ export default async function AnglerProfilePage({
         <Fish size={13} className="text-blue-400" /> Recent Catches
       </h2>
 
-      {!catches || catches.length === 0 ? (
+      {visibleCatches.length === 0 ? (
         <p className="text-slate-600 text-sm">No catches logged yet.</p>
       ) : (
         <div className="flex flex-col gap-3">
-          {catches.map((c) => {
+          {visibleCatches.map((c) => {
             const fish = c.fish_species as unknown as { name: string } | null;
             const spot = c.spots as unknown as { id: string; name: string } | null;
             const bait = c.baits as unknown as { name: string } | null;

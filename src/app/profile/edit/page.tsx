@@ -11,6 +11,7 @@ export default function EditProfilePage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
+  const [homeState, setHomeState] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -23,12 +24,13 @@ export default function EditProfilePage() {
       if (!user) { router.push("/login?redirectTo=/profile/edit"); return; }
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username, bio, avatar_url")
+        .select("username, bio, avatar_url, home_state")
         .eq("id", user.id)
         .single();
       if (profile) {
         setUsername(profile.username ?? "");
         setBio(profile.bio ?? "");
+        setHomeState((profile as unknown as { home_state?: string }).home_state ?? "");
         setAvatarUrl(profile.avatar_url ?? null);
       }
       setLoading(false);
@@ -42,7 +44,7 @@ export default function EditProfilePage() {
     setSaving(true);
     setError(null);
     try {
-      await updateProfile({ username: username.trim(), bio: bio.trim() || undefined });
+      await updateProfile({ username: username.trim(), bio: bio.trim() || undefined, home_state: homeState || undefined });
       router.push("/profile");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
@@ -102,6 +104,20 @@ export default function EditProfilePage() {
               placeholder="Tell other anglers about yourself…"
               className="w-full px-3.5 py-2.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors resize-none"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium text-slate-400 mb-1.5">Home State</label>
+            <select
+              value={homeState}
+              onChange={(e) => setHomeState(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 focus:outline-none focus:border-blue-500 transition-colors appearance-none cursor-pointer"
+            >
+              <option value="" className="bg-[#0c1a2e]">Select a state…</option>
+              {["Alabama","Alaska","Arizona","Arkansas","California","Colorado","Connecticut","Delaware","Florida","Georgia","Hawaii","Idaho","Illinois","Indiana","Iowa","Kansas","Kentucky","Louisiana","Maine","Maryland","Massachusetts","Michigan","Minnesota","Mississippi","Missouri","Montana","Nebraska","Nevada","New Hampshire","New Jersey","New Mexico","New York","North Carolina","North Dakota","Ohio","Oklahoma","Oregon","Pennsylvania","Rhode Island","South Carolina","South Dakota","Tennessee","Texas","Utah","Vermont","Virginia","Washington","West Virginia","Wisconsin","Wyoming"].map((s) => (
+                <option key={s} value={s} className="bg-[#0c1a2e]">{s}</option>
+              ))}
+            </select>
           </div>
 
           {error && (

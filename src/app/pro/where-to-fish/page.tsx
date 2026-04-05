@@ -45,7 +45,7 @@ const TECHNIQUE_TIPS: Record<string, (waterType: string) => string> = {
 };
 
 function techniqueMatch(technique: string, waterType: string): number {
-  if (!technique) return 5; // neutral when no technique selected
+  if (!technique) return 5;
   const match = TECHNIQUE_WATER[technique];
   if (!match) return 5;
   const wt = waterType.toLowerCase();
@@ -55,11 +55,15 @@ function techniqueMatch(technique: string, waterType: string): number {
 }
 
 function compositeScore(solunar: number, recentCatches: number, avgRating: number, techMatch: number): number {
-  const solunarNorm   = (solunar / 10) * 35;             // 0–35
-  const catchNorm     = Math.min(recentCatches / 8, 1) * 30; // 0–30 (8 catches = max)
-  const ratingNorm    = ((avgRating - 1) / 4) * 25;      // 0–25
-  const techNorm      = (techMatch / 10) * 10;            // 0–10
-  return Math.round(solunarNorm + catchNorm + ratingNorm + techNorm);
+  // Solunar: 0–40 (real-time signal, varies by location + time)
+  const solunarNorm = (solunar / 10) * 40;
+  // Catches: base 10pts + up to 25 bonus (so 0 catches ≠ zero contribution)
+  const catchNorm   = 10 + Math.min(recentCatches / 5, 1) * 25;
+  // Rating: 1→0, 3→12.5 (neutral), 5→25
+  const ratingNorm  = ((avgRating - 1) / 4) * 25;
+  // Technique: 0–10 (only applied when a technique is selected)
+  const techNorm    = (techMatch / 10) * 10;
+  return Math.round(Math.min(solunarNorm + catchNorm + ratingNorm + techNorm, 100));
 }
 
 function ScoreBar({ score }: { score: number }) {
@@ -79,35 +83,211 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 interface PageProps {
-  searchParams: Promise<{ technique?: string; state?: string }>;
+  searchParams: Promise<{ technique?: string; state?: string; fish?: string; mode?: string; spot?: string }>;
 }
 
 export default async function WhereFishPage({ searchParams }: PageProps) {
-  const { technique = "", state = "" } = await searchParams;
+  const { technique = "", state = "", fish = "", mode = "find", spot = "" } = await searchParams;
   const supabase = await createClient();
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Check pro status (or allow preview for now while payments aren't wired)
   let isPro = false;
   if (user) {
     const { data: p } = await supabase.from("profiles").select("is_pro").eq("id", user.id).single();
     isPro = !!(p as unknown as { is_pro?: boolean } | null)?.is_pro;
   }
 
-  // Fetch spots (filtered by state if set, limited to manageable batch)
+  // Always fetch species list for the filter dropdown
+  const { data: allSpecies } = await supabase
+    .from("fish_species")
+    .select("id, name")
+    .order("name");
+
+  const speciesNames = (allSpecies ?? []).map((s) => s.name as string);
+
+  // ── MODE: EXPLORE A SPOT ──────────────────────────────────────────────────
+  if (mode === "spot") {
+    let exploreQuery = supabase
+      .from("spots")
+      .select("id, name, water_type, state, latitude, longitude, spot_fish(fish_species(id, name))")
+      .eq("approved", true);
+
+    const { data: exploreSpots } = spot
+      ? await exploreQuery.ilike("name", `%${spot}%`).limit(20)
+      : { data: [] };
+
+    if (!isPro) {
+      return (
+        <ProGate
+          title="Where to Fish"
+          icon={MapPin}
+          iconColor="text-cyan-400"
+          description="Search by fish species to find the best spots, or look up any lake or river to see what fish you can catch there."
+          features={[
+            "Search by fish species → find the best spots",
+            "Search by lake/river → see all fish present",
+            "Live solunar scoring for every spot",
+            "Ranked by catches in the last 30 days",
+            "Technique-match filtering",
+            "State/region filtering",
+          ]}
+          preview={
+            <div className="max-w-3xl mx-auto px-4 py-8 space-y-3">
+              {[85, 72, 68, 61, 54].map((score, i) => (
+                <div key={i} className="p-5 rounded-2xl border border-white/8 bg-white/2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xl font-black text-slate-500 w-7">#{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="h-4 w-40 bg-white/15 rounded mb-2" />
+                      <div className="h-2 w-24 bg-white/8 rounded mb-3" />
+                      <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                        <div className="h-full rounded-full bg-green-500/50" style={{ width: `${score}%` }} />
+                      </div>
+                    </div>
+                    <div className="text-2xl font-black text-white/50">{score}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          }
+        />
+      );
+    }
+
+    type ExploreSpot = {
+      id: string;
+      name: string;
+      water_type: string | null;
+      state: string | null;
+      latitude: number | null;
+      longitude: number | null;
+      spot_fish: { fish_species: { id: string; name: string } | null }[];
+    };
+
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8">
+        <div className="flex items-start gap-4 mb-8">
+          <div className="w-11 h-11 rounded-xl bg-cyan-500/15 border border-cyan-500/20 flex items-center justify-center shrink-0">
+            <MapPin className="text-cyan-400" size={20} />
+          </div>
+          <div className="flex-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-2xl font-bold text-white">Where to Fish</h1>
+              <ProBadge />
+            </div>
+            <p className="text-slate-500 text-sm mt-0.5">
+              Search a lake or river to see what fish are there.
+            </p>
+          </div>
+        </div>
+
+        <Suspense>
+          <WhereFishFilters speciesNames={speciesNames} />
+        </Suspense>
+
+        {!spot ? (
+          <div className="text-center py-16 rounded-2xl border border-dashed border-white/8 text-slate-600">
+            <MapPin size={28} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">Type a lake or river name above to explore it.</p>
+          </div>
+        ) : (exploreSpots ?? []).length === 0 ? (
+          <div className="text-center py-16 rounded-2xl border border-dashed border-white/8 text-slate-600">
+            <Fish size={28} className="mx-auto mb-3 opacity-30" />
+            <p className="text-sm">No spots found for &ldquo;{spot}&rdquo;.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {(exploreSpots as unknown as ExploreSpot[]).map((s) => {
+              const now = new Date();
+              const solunar = s.latitude && s.longitude ? computeFishingScore(s.longitude, now) : null;
+              const sl = solunar != null ? scoreLabel(solunar) : null;
+              const fishList = (s.spot_fish ?? [])
+                .map((sf) => sf.fish_species?.name)
+                .filter(Boolean) as string[];
+
+              return (
+                <div key={s.id} className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden hover:border-white/14 transition-colors group">
+                  <Link href={`/spots/${s.id}`} className="block p-5">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div>
+                        <h3 className="font-semibold text-slate-200 group-hover:text-white transition-colors">{s.name}</h3>
+                        <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
+                          {s.water_type && <span className="flex items-center gap-1"><Waves size={9} />{s.water_type}</span>}
+                          {s.state && <span>{s.state}</span>}
+                        </div>
+                      </div>
+                      {sl && (
+                        <div className="text-right shrink-0">
+                          <div className="text-xs font-semibold" style={{ color: sl.color }}>{sl.label}</div>
+                          <div className="text-[9px] text-slate-600 uppercase tracking-wide">solunar</div>
+                        </div>
+                      )}
+                    </div>
+
+                    {fishList.length > 0 ? (
+                      <div className="flex flex-wrap gap-1.5">
+                        {fishList.map((name) => (
+                          <span key={name} className="px-2 py-0.5 rounded-full text-xs bg-blue-500/10 border border-blue-500/20 text-blue-300">
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-slate-600 italic">No species linked yet</p>
+                    )}
+
+                    <p className="text-xs text-blue-500/60 group-hover:text-blue-400 transition-colors mt-3">View spot details →</p>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── MODE: FIND SPOTS (ranked) ─────────────────────────────────────────────
+
+  // If a fish species is selected, get matching spot IDs via spot_fish
+  let filteredSpotIds: string[] | null = null;
+  if (fish) {
+    const { data: fishRow } = await supabase
+      .from("fish_species")
+      .select("id")
+      .eq("name", fish)
+      .single();
+    if (fishRow) {
+      const { data: sfRows } = await supabase
+        .from("spot_fish")
+        .select("spot_id")
+        .eq("fish_id", fishRow.id);
+      filteredSpotIds = (sfRows ?? []).map((r) => r.spot_id as string);
+    }
+  }
+
   let spotsQuery = supabase
     .from("spots")
-    .select("id, name, water_type, state, lat, lng, description")
+    .select("id, name, water_type, state, latitude, longitude, description, spot_fish(fish_species(id, name))")
     .eq("approved", true)
-    .not("lat", "is", null)
-    .not("lng", "is", null)
-    .limit(60);
+    .not("latitude", "is", null)
+    .not("longitude", "is", null)
+    .limit(150);
 
   if (state) spotsQuery = spotsQuery.ilike("state", state);
+  if (filteredSpotIds) {
+    if (filteredSpotIds.length === 0) {
+      // No spots have this fish
+      spotsQuery = spotsQuery.in("id", ["00000000-0000-0000-0000-000000000000"]);
+    } else {
+      spotsQuery = spotsQuery.in("id", filteredSpotIds);
+    }
+  }
+
   const { data: spots } = await spotsQuery;
 
-  // Fetch recent catch counts per spot (last 30 days)
+  // Recent catch counts
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   const { data: recentCatchRows } = await supabase
     .from("catches")
@@ -121,56 +301,44 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
     if (r.spot_id) catchCounts[r.spot_id] = (catchCounts[r.spot_id] ?? 0) + 1;
   });
 
-  // Fetch average ratings per spot
-  const { data: ratingRows } = await supabase
-    .from("spot_ratings")
-    .select("spot_id, rating");
-
+  // Average ratings
+  const { data: ratingRows } = await supabase.from("spot_ratings").select("spot_id, rating");
   const ratingMap: Record<string, number[]> = {};
   (ratingRows ?? []).forEach((r) => {
     ratingMap[r.spot_id] = ratingMap[r.spot_id] ?? [];
     ratingMap[r.spot_id].push(r.rating);
   });
 
-  // Score every spot
   const now = new Date();
-  type ScoredSpot = {
-    id: string; name: string; water_type: string; state: string | null;
-    lat: number; lng: number; description: string | null;
-    solunarScore: number; solunarLabel: { label: string; color: string };
-    recentCatches: number; avgRating: number; techMatch: number;
-    composite: number;
+
+  type SpotRow = {
+    id: string; name: string; water_type: string | null; state: string | null;
+    latitude: number; longitude: number; description: string | null;
+    spot_fish: { fish_species: { id: string; name: string } | null }[];
   };
 
-  const scored: ScoredSpot[] = (spots ?? []).map((s) => {
-    const solunarScore = computeFishingScore(s.lng as number, now);
+  type ScoredSpot = SpotRow & {
+    solunarScore: number;
+    solunarLabel: { label: string; color: string };
+    recentCatches: number;
+    avgRating: number;
+    techMatch: number;
+    composite: number;
+    fishList: string[];
+  };
+
+  const scored: ScoredSpot[] = (spots as unknown as SpotRow[] ?? []).map((s) => {
+    const solunarScore = computeFishingScore(s.longitude, now);
     const recentCatches = catchCounts[s.id] ?? 0;
     const ratings = ratingMap[s.id] ?? [];
-    const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 2.5;
-    const techMatch = techniqueMatch(technique, (s.water_type as string) ?? "");
+    const avgRating = ratings.length > 0 ? ratings.reduce((a, b) => a + b, 0) / ratings.length : 3;
+    const techMatch = techniqueMatch(technique, s.water_type ?? "");
     const composite = compositeScore(solunarScore, recentCatches, avgRating, techMatch);
-    return {
-      id: s.id,
-      name: s.name as string,
-      water_type: (s.water_type as string) ?? "",
-      state: s.state as string | null,
-      lat: s.lat as number,
-      lng: s.lng as number,
-      description: s.description as string | null,
-      solunarScore,
-      solunarLabel: scoreLabel(solunarScore),
-      recentCatches,
-      avgRating,
-      techMatch,
-      composite,
-    };
+    const fishList = (s.spot_fish ?? []).map((sf) => sf.fish_species?.name).filter(Boolean) as string[];
+    return { ...s, water_type: s.water_type ?? "", state: s.state, solunarScore, solunarLabel: scoreLabel(solunarScore), recentCatches, avgRating, techMatch, composite, fishList };
   });
 
-  // Filter out technique mismatches (techMatch === 0) if a technique is selected
-  const filtered = technique
-    ? scored.filter((s) => s.techMatch > 0)
-    : scored;
-
+  const filtered = technique ? scored.filter((s) => s.techMatch > 0) : scored;
   const topSpots = filtered.sort((a, b) => b.composite - a.composite).slice(0, 10);
 
   if (!isPro) {
@@ -179,14 +347,14 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
         title="Where to Fish"
         icon={MapPin}
         iconColor="text-cyan-400"
-        description="Real-time spot recommendations ranked by solunar timing, weather, community catch data, and your technique — so you always know where to go."
+        description="Search by fish species to find the best spots, or look up any lake or river to see what fish you can catch there."
         features={[
+          "Search by fish species → find the best spots",
+          "Search by lake/river → see all fish present",
           "Live solunar scoring for every spot",
           "Ranked by catches in the last 30 days",
-          "Technique-match filtering (fly, spin, jig…)",
+          "Technique-match filtering",
           "State/region filtering",
-          "Expert technique tips per spot",
-          "Top 10 spots updated in real-time",
         ]}
         preview={
           <div className="max-w-3xl mx-auto px-4 py-8 space-y-3">
@@ -224,17 +392,19 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
             <ProBadge />
           </div>
           <p className="text-slate-500 text-sm mt-0.5">
-            Spots ranked by solunar timing, community activity, ratings, and technique match — right now.
+            {fish
+              ? `Top spots for ${fish} — ranked by conditions right now.`
+              : "Spots ranked by solunar timing, community activity, ratings, and technique match — right now."}
           </p>
         </div>
       </div>
 
       {/* Filters */}
       <Suspense>
-        <WhereFishFilters />
+        <WhereFishFilters speciesNames={speciesNames} />
       </Suspense>
 
-      {/* Current conditions summary */}
+      {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         {[
           { icon: Clock, label: "Solunar Now", value: scoreLabel(computeFishingScore(-111.9, now)).label, color: scoreLabel(computeFishingScore(-111.9, now)).color },
@@ -254,17 +424,17 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
         <div className="text-center py-16 rounded-2xl border border-dashed border-white/8 text-slate-600">
           <Fish size={28} className="mx-auto mb-3 opacity-30" />
           <p className="text-sm">No spots found for these filters.</p>
-          {technique && (
+          {(fish || technique) && (
             <p className="text-xs mt-1">
-              Try a different technique or{" "}
-              <Link href="/pro/where-to-fish" className="text-blue-400">clear filters</Link>.
+              Try different filters or{" "}
+              <Link href="/pro/where-to-fish" className="text-blue-400">clear all</Link>.
             </p>
           )}
         </div>
       ) : (
         <div className="space-y-3">
           {topSpots.map((spot, i) => {
-            const tip = technique ? TECHNIQUE_TIPS[technique]?.(spot.water_type) : null;
+            const tip = technique ? TECHNIQUE_TIPS[technique]?.(spot.water_type ?? "") : null;
 
             return (
               <div
@@ -273,12 +443,10 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
               >
                 <Link href={`/spots/${spot.id}`} className="block p-5 group">
                   <div className="flex items-start gap-3">
-                    {/* Rank */}
                     <span className={`text-xl font-black w-7 shrink-0 mt-0.5 ${i === 0 ? "text-yellow-400" : i === 1 ? "text-slate-300" : i === 2 ? "text-amber-600" : "text-slate-700"}`}>
                       #{i + 1}
                     </span>
 
-                    {/* Main content */}
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2 mb-1">
                         <div>
@@ -288,17 +456,14 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
                             {spot.state && <span>{spot.state}</span>}
                           </div>
                         </div>
-                        {/* Composite score */}
                         <div className="text-right shrink-0">
                           <div className="text-lg font-black text-white">{spot.composite}</div>
                           <div className="text-[9px] text-slate-600 uppercase tracking-wide">score</div>
                         </div>
                       </div>
 
-                      {/* Score bar */}
                       <ScoreBar score={spot.composite} />
 
-                      {/* Metrics row */}
                       <div className="flex items-center gap-3 mt-2.5 flex-wrap text-xs text-slate-500">
                         <span className="flex items-center gap-1">
                           <span className="w-2 h-2 rounded-full inline-block shrink-0" style={{ background: spot.solunarLabel.color }} />
@@ -319,7 +484,24 @@ export default async function WhereFishPage({ searchParams }: PageProps) {
                         )}
                       </div>
 
-                      {/* Technique tip */}
+                      {/* Fish species tags */}
+                      {spot.fishList.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-2.5">
+                          {spot.fishList.map((name) => (
+                            <span
+                              key={name}
+                              className={`px-2 py-0.5 rounded-full text-[10px] border ${
+                                fish && name === fish
+                                  ? "bg-blue-500/20 border-blue-500/40 text-blue-300"
+                                  : "bg-white/4 border-white/8 text-slate-500"
+                              }`}
+                            >
+                              {name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
                       {tip && (
                         <p className="text-xs text-slate-600 mt-2 italic leading-relaxed">
                           💡 {tip}

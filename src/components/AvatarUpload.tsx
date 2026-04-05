@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useTransition } from "react";
-import { Camera, X } from "lucide-react";
+import { Camera } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { isNative, takeCameraPhoto } from "@/lib/native";
 
 interface Props {
   currentUrl: string | null;
@@ -56,7 +57,17 @@ export default function AvatarUpload({ currentUrl, username, onSaved }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => inputRef.current?.click()}
+          onClick={async () => {
+            if (isNative()) {
+              const dataUrl = await takeCameraPhoto();
+              if (!dataUrl) return;
+              const res = await fetch(dataUrl);
+              const blob = await res.blob();
+              handleFile(new File([blob], `avatar-${Date.now()}.jpg`, { type: "image/jpeg" }));
+            } else {
+              inputRef.current?.click();
+            }
+          }}
           disabled={isPending}
           className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-blue-600 hover:bg-blue-500 border-2 border-[#060d1a] flex items-center justify-center text-white transition-colors disabled:opacity-50"
         >
@@ -83,7 +94,7 @@ export default function AvatarUpload({ currentUrl, username, onSaved }: Props) {
         type="button"
         onClick={() => inputRef.current?.click()}
         disabled={isPending}
-        className="text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50"
+        className={`text-xs text-blue-400 hover:text-blue-300 transition-colors disabled:opacity-50 ${isNative() ? "hidden" : ""}`}
       >
         {isPending ? "Uploading…" : preview ? "Change photo" : "Upload photo"}
       </button>
