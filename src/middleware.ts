@@ -21,50 +21,40 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // Refresh session — required by Supabase SSR
   const { data: { user } } = await supabase.auth.getUser();
   const pathname = request.nextUrl.pathname;
 
-  // All app routes require auth — landing, login, signup, auth callback are public
-  const publicPaths = ["/", "/login", "/signup", "/auth/"];
-  const isPublic = publicPaths.some((p) =>
-    pathname === p || pathname.startsWith(p)
-  );
+  // Public paths — no auth required
+  const publicPaths = [
+    "/", "/login", "/signup", "/auth/",
+    "/privacy", "/terms", "/pro",
+  ];
+  const isPublic =
+    publicPaths.some((p) => pathname === p || pathname.startsWith(p)) ||
+    pathname.startsWith("/api/") ||
+    pathname.startsWith("/spots") ||
+    pathname.startsWith("/fish") ||
+    pathname.startsWith("/anglers") ||
+    pathname.startsWith("/leaderboard") ||
+    pathname.startsWith("/explore") ||
+    pathname.startsWith("/forecast");
 
   if (!isPublic && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
-    // Preserve the intended destination so we can redirect after login
     if (pathname !== "/") url.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(url);
   }
 
-  // Redirect logged-in users who haven't completed onboarding
-  const skipOnboardingCheck =
-    pathname.startsWith("/onboarding") ||
-    pathname.startsWith("/auth/") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup") ||
-    pathname === "/";
-
-  if (user && !skipOnboardingCheck) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("onboarding_complete")
-      .eq("id", user.id)
-      .single();
-
-    if (profile && !profile.onboarding_complete) {
-      const url = request.nextUrl.clone();
-      url.pathname = "/onboarding";
-      return NextResponse.redirect(url);
-    }
-  }
+  // Onboarding check is handled in individual pages — not here —
+  // to avoid DB queries in the Edge runtime.
 
   return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
