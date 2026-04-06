@@ -276,6 +276,7 @@ export default async function HomePage() {
             <Link href="/pro" className="hover:text-amber-400 transition-colors text-amber-600">Pro</Link>
             <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms</Link>
+            <Link href="/contact" className="hover:text-slate-400 transition-colors">Contact</Link>
             <Link href="/map" className="hover:text-slate-400 transition-colors">Map</Link>
           </div>
         </div>

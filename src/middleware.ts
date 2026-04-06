@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
   // Public paths — no auth required
   const publicPaths = [
     "/", "/login", "/signup", "/auth/",
-    "/privacy", "/terms", "/pro",
+    "/privacy", "/terms", "/contact", "/pro",
   ];
   const isPublic =
     publicPaths.some((p) => pathname === p || pathname.startsWith(p)) ||
