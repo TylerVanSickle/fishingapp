@@ -72,7 +72,7 @@ export async function hapticLight() {
   } catch { /* ignore */ }
 }
 
-export async function hapticNotification(type: 'SUCCESS' | 'WARNING' | 'ERROR' = 'SUCCESS') {
+export async function hapticNotification(type: 'Success' | 'Warning' | 'Error' = 'Success') {
   if (!isNative()) return;
   try {
     const { Haptics, NotificationType } = await import('@capacitor/haptics');
