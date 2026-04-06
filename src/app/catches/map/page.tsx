@@ -9,7 +9,7 @@ export default async function CatchMapPage() {
   // Fetch recent public catches with spot coordinates
   let query = supabase
     .from("catches")
-    .select("id, caught_at, weight_lbs, length_in, photo_url, is_private, fish_species(name), spots(id, name, latitude, longitude), profiles!user_id(id, username)")
+    .select("id, caught_at, weight_lbs, length_in, photo_url, is_private, user_id, fish_species(name), spots(id, name, latitude, longitude), profiles!user_id(id, username)")
     .not("spots", "is", null)
     .order("caught_at", { ascending: false })
     .limit(500);
@@ -18,10 +18,7 @@ export default async function CatchMapPage() {
 
   // Filter private catches (owner can see their own)
   const catches: CatchPin[] = (raw ?? [])
-    .filter(c => {
-      const isPrivate = (c as Record<string, unknown>).is_private;
-      return !isPrivate || c.user_id === user?.id;
-    })
+    .filter(c => !c.is_private || c.user_id === user?.id)
     .map(c => {
       const spot = c.spots as unknown as { id: string; name: string; latitude: number; longitude: number } | null;
       const fish = c.fish_species as unknown as { name: string } | null;
