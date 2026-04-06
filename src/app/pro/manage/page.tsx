@@ -43,11 +43,12 @@ export default async function ManageProPage() {
       const price = item?.price;
       const interval = price?.recurring?.interval ?? "month";
       const amount = price?.unit_amount ? `$${(price.unit_amount / 100).toFixed(2)}` : "";
+      const raw = stripeSub as unknown as { current_period_end: number; cancel_at_period_end: boolean };
 
       sub = {
         status: stripeSub.status,
-        currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
-        cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+        currentPeriodEnd: new Date(raw.current_period_end * 1000),
+        cancelAtPeriodEnd: raw.cancel_at_period_end,
         planName: interval === "year" ? "Annual" : "Monthly",
         amount,
         interval,
