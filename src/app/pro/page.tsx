@@ -164,7 +164,9 @@ export default async function ProPage() {
                 <Check size={14} /> You&apos;re on Pro
               </div>
               <div className="flex justify-center">
-                <ManageSubscriptionButton />
+                <Link href="/pro/manage" className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
+                  Manage subscription →
+                </Link>
               </div>
             </div>
           ) : user ? (
@@ -197,7 +199,9 @@ export default async function ProPage() {
                 <Check size={14} /> You&apos;re on Pro
               </div>
               <div className="flex justify-center">
-                <ManageSubscriptionButton />
+                <Link href="/pro/manage" className="text-xs text-slate-500 hover:text-slate-300 transition-colors underline underline-offset-2">
+                  Manage subscription →
+                </Link>
               </div>
             </div>
           ) : user ? (

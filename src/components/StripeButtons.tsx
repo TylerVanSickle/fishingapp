@@ -51,7 +51,7 @@ export function CheckoutButton({ plan, label, className }: {
   );
 }
 
-export function ManageSubscriptionButton() {
+export function ManageSubscriptionButton({ fullWidth }: { fullWidth?: boolean }) {
   const [loading, setLoading] = useState(false);
 
   async function handleClick() {
@@ -60,6 +60,19 @@ export function ManageSubscriptionButton() {
     const data = await res.json();
     if (data.url) window.location.href = data.url;
     else setLoading(false);
+  }
+
+  if (fullWidth) {
+    return (
+      <button
+        onClick={handleClick}
+        disabled={loading}
+        className="w-full py-2.5 rounded-xl bg-white/6 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-sm font-medium transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+      >
+        {loading ? <Loader2 size={14} className="animate-spin" /> : <ExternalLink size={14} />}
+        {loading ? "Opening portal…" : "Manage in Stripe Portal"}
+      </button>
+    );
   }
 
   return (

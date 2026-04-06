@@ -8,7 +8,7 @@ const config: CapacitorConfig = {
   // Point the webview at your live deployed URL
   // Change this to your actual Vercel/production URL
   server: {
-    url: 'https://hookline.app', // 👈 replace with your actual URL
+    url: 'https://hooklines.vercel.app',
     cleartext: false,
   },
 
