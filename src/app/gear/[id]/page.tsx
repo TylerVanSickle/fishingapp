@@ -66,7 +66,7 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
             <p className="text-sm text-slate-300 mt-0.5">{(value as string) || <span className="text-slate-700">—</span>}</p>
           </div>
         ))}
-        {s.notes && (
+        {(s.notes as string | null) && (
           <div className="col-span-2">
             <p className="text-xs text-slate-600">Notes</p>
             <p className="text-sm text-slate-300 mt-0.5">{s.notes as string}</p>
