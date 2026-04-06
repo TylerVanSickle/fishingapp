@@ -18,3 +18,15 @@ export async function toggleUserAdmin(userId: string, isAdmin: boolean) {
   await supabase.from("profiles").update({ is_admin: isAdmin }).eq("id", userId);
   revalidatePath("/admin/users");
 }
+
+export async function markContactRead(id: string) {
+  const supabase = await assertAdmin();
+  await supabase.from("contact_submissions").update({ read: true }).eq("id", id);
+  revalidatePath("/admin/contact");
+}
+
+export async function markAllContactRead() {
+  const supabase = await assertAdmin();
+  await supabase.from("contact_submissions").update({ read: true }).eq("read", false);
+  revalidatePath("/admin/contact");
+}

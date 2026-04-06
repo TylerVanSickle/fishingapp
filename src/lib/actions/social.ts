@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { filterCheck } from "@/lib/contentFilter";
+import { sendPushToUser } from "@/lib/push";
 
 // ─── Follow ──────────────────────────────────────────────────────────────────
 
@@ -25,6 +26,12 @@ export async function toggleFollow(targetUserId: string, currentlyFollowing: boo
       user_id: targetUserId,
       type: "new_follower",
       actor_id: user.id,
+    });
+    const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    void sendPushToUser(supabase, targetUserId, {
+      title: "New follower",
+      body: `@${actor?.username ?? "Someone"} started following you`,
+      url: `/anglers/${user.id}`,
     });
   }
 
@@ -56,6 +63,12 @@ export async function rateSpot(spotId: string, rating: number) {
         type: "spot_rating",
         actor_id: user.id,
         entity_id: spotId,
+      });
+      const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+      void sendPushToUser(supabase, spotRow.user_id, {
+        title: "New spot rating",
+        body: `@${actor?.username ?? "Someone"} rated your spot`,
+        url: `/spots/${spotId}`,
       });
     }
   }
@@ -90,6 +103,12 @@ export async function addSpotComment(spotId: string, body: string) {
       type: "spot_comment",
       actor_id: user.id,
       entity_id: spotId,
+    });
+    const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    void sendPushToUser(supabase, spotRow.user_id, {
+      title: "New comment on your spot",
+      body: `@${actor?.username ?? "Someone"}: ${trimmed.slice(0, 80)}`,
+      url: `/spots/${spotId}`,
     });
   }
 
@@ -137,6 +156,12 @@ export async function addCatchComment(catchId: string, content: string) {
       type: "catch_comment",
       actor_id: user.id,
       entity_id: catchId,
+    });
+    const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+    void sendPushToUser(supabase, catchRow.user_id, {
+      title: "New comment on your catch",
+      body: `@${actor?.username ?? "Someone"}: ${trimmed.slice(0, 80)}`,
+      url: `/catches/${catchId}`,
     });
   }
 
@@ -195,6 +220,12 @@ export async function setCatchReaction(catchId: string, emoji: string | null) {
           type: "catch_reaction",
           actor_id: user.id,
           entity_id: catchId,
+        });
+        const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+        void sendPushToUser(supabase, catchRow.user_id, {
+          title: `${emoji} reaction on your catch`,
+          body: `@${actor?.username ?? "Someone"} reacted to your catch`,
+          url: `/catches/${catchId}`,
         });
       }
     }

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import NavbarActions from "./NavbarActions";
 import GlobalSearch from "./GlobalSearch";
 import NavMore from "./NavMore";
+import NavLinks from "./NavLinks";
 
 export default async function Navbar() {
   const supabase = await createClient();
@@ -45,6 +46,7 @@ export default async function Navbar() {
     { href: "/gear",              label: "✦ Gear Tracker" },
     { href: "/trips",             label: "Trips" },
     { href: "/regulations",       label: "Regulations" },
+    { href: "/contact",           label: "Contact & Support" },
   ] : [];
 
   return (
@@ -57,15 +59,7 @@ export default async function Navbar() {
       </Link>
 
       <div className="flex items-center gap-0.5 ml-2 flex-1 overflow-x-auto scrollbar-none">
-        {primaryLinks.map(({ href, label }) => (
-          <Link
-            key={href}
-            href={href}
-            className="px-3 py-1.5 rounded-lg text-sm text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors whitespace-nowrap"
-          >
-            {label}
-          </Link>
-        ))}
+        <NavLinks links={primaryLinks} />
 
         {user && <NavMore links={moreLinks} />}
 

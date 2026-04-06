@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Bell, UserPlus, MessageSquare, Fish, Star, MapPin, Heart } from "lucide-react";
+import PushSubscribeButton from "@/components/PushSubscribeButton";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -108,7 +109,7 @@ export default async function NotificationsPage() {
 
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-blue-600/15 border border-blue-500/20 flex items-center justify-center">
             <Bell className="text-blue-400" size={20} />
@@ -120,6 +121,7 @@ export default async function NotificationsPage() {
             )}
           </div>
         </div>
+        <PushSubscribeButton />
       </div>
 
       {notifs.length === 0 ? (

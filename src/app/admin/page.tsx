@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { Users, MapPin, Fish, FileText, Clock } from "lucide-react";
+import { Users, MapPin, Fish, FileText, Clock, MessageSquare } from "lucide-react";
 
 export default async function AdminDashboard() {
   const supabase = await createClient();
@@ -18,6 +18,7 @@ export default async function AdminDashboard() {
     { count: reportCount },
     { data: recentCatches },
     { data: recentReports },
+    { data: contacts },
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("spots").select("*", { count: "exact", head: true }).eq("approved", true),
@@ -33,6 +34,10 @@ export default async function AdminDashboard() {
       .select("id, body, activity_level, created_at, spots(name), profiles!user_id(username)")
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase.from("contact_submissions")
+      .select("id, name, email, category, message, read, created_at")
+      .order("created_at", { ascending: false })
+      .limit(20),
   ]);
 
   const stats = [
@@ -105,6 +110,24 @@ export default async function AdminDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Contact submissions summary */}
+      {(contacts?.length ?? 0) > 0 && (
+        <div className="mt-8 p-4 rounded-2xl border border-blue-600/20 bg-blue-600/5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <MessageSquare size={16} className="text-blue-400" />
+            <span className="text-sm text-slate-300">
+              <span className="font-semibold text-blue-400">
+                {(contacts as unknown as { read: boolean }[]).filter((c) => !c.read).length}
+              </span>{" "}
+              unread contact submission{(contacts as unknown as { read: boolean }[]).filter((c) => !c.read).length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <a href="/admin/contact" className="text-xs text-blue-400 hover:text-blue-300 transition-colors font-medium">
+            View all →
+          </a>
+        </div>
+      )}
     </div>
   );
 }

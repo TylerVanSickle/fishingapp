@@ -51,10 +51,10 @@ export default async function AdminSpotsPage({
               const profile = spot.profiles as { username: string } | null;
               return (
                 <div key={spot.id} className="p-5 rounded-2xl border border-amber-500/15 bg-amber-500/3">
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-white">{spot.name}</h3>
-                      <div className="flex items-center gap-3 text-xs text-slate-500 mt-1">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
                         <span className="capitalize flex items-center gap-1"><MapPin size={10} />{spot.water_type}</span>
                         <span>{spot.latitude.toFixed(4)}, {spot.longitude.toFixed(4)}</span>
                         <span>by @{profile?.username ?? "?"}</span>
@@ -106,14 +106,14 @@ export default async function AdminSpotsPage({
           <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide">
             Approved Spots ({approved?.length ?? 0} shown)
           </h2>
-          <form method="GET" action="/admin/spots" className="flex gap-2">
-            <div className="relative">
+          <form method="GET" action="/admin/spots" className="flex gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
               <input
                 name="q"
                 defaultValue={query}
                 placeholder="Search approved spots..."
-                className="pl-9 pr-3 py-1.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors text-xs w-52"
+                className="w-full sm:w-52 pl-9 pr-3 py-1.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors text-xs"
               />
             </div>
             {query && (
