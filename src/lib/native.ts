@@ -72,11 +72,12 @@ export async function hapticLight() {
   } catch { /* ignore */ }
 }
 
-export async function hapticNotification(type: 'Success' | 'Warning' | 'Error' = 'Success') {
+export async function hapticNotification(type: 'success' | 'warning' | 'error' = 'success') {
   if (!isNative()) return;
   try {
     const { Haptics, NotificationType } = await import('@capacitor/haptics');
-    await Haptics.notification({ type: NotificationType[type] });
+    const map = { success: NotificationType.Success, warning: NotificationType.Warning, error: NotificationType.Error };
+    await Haptics.notification({ type: map[type] });
   } catch { /* ignore */ }
 }
 
