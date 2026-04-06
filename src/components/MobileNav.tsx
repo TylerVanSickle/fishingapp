@@ -79,16 +79,16 @@ export default function MobileNav({
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#060d1a]/95 backdrop-blur-xl border-t border-white/8 pb-safe">
         <div className="flex items-center justify-around px-2 py-2">
+          <Link href="/" className={navClass("/")}>
+            <Fish size={22} strokeWidth={pathname === "/" ? 2.5 : 1.75} />
+            <span className="text-[10px] font-medium">Home</span>
+          </Link>
           <Link href="/map" className={navClass("/map")}>
             <Map size={22} strokeWidth={pathname === "/map" ? 2.5 : 1.75} />
             <span className="text-[10px] font-medium">Map</span>
           </Link>
-          <Link href="/explore" className={navClass("/explore")}>
-            <Compass size={22} strokeWidth={pathname === "/explore" ? 2.5 : 1.75} />
-            <span className="text-[10px] font-medium">Explore</span>
-          </Link>
-          <Link href="/login" className="flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl text-slate-500">
-            <User size={22} strokeWidth={1.75} />
+          <Link href="/login" className={navClass("/login")}>
+            <User size={22} strokeWidth={pathname === "/login" ? 2.5 : 1.75} />
             <span className="text-[10px] font-medium">Sign in</span>
           </Link>
         </div>
