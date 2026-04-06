@@ -20,7 +20,7 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
 
   type Setup = {
     id: string; name: string | null; rod: string | null; reel: string | null;
-    line: string | null; leader: string | null; notes: string | null;
+    line: string | null; leader: string | null; notes: string | null; created_at: string;
   };
   const s = setup as unknown as Setup;
 
@@ -49,9 +49,9 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
             <Wrench size={22} className="text-amber-400" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">{s.name as string}</h1>
+            <h1 className="text-xl font-bold text-white">{s.name}</h1>
             <p className="text-xs text-slate-500 mt-0.5">
-              Created {new Date(s.created_at as string).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              Created {new Date(s.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
             </p>
           </div>
         </div>
@@ -67,13 +67,13 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
         ].map(({ label, value }) => (
           <div key={label}>
             <p className="text-xs text-slate-600">{label}</p>
-            <p className="text-sm text-slate-300 mt-0.5">{(value as string) || <span className="text-slate-700">—</span>}</p>
+            <p className="text-sm text-slate-300 mt-0.5">{value || <span className="text-slate-700">—</span>}</p>
           </div>
         ))}
-        {(s.notes as string | null) && (
+        {s.notes && (
           <div className="col-span-2">
             <p className="text-xs text-slate-600">Notes</p>
-            <p className="text-sm text-slate-300 mt-0.5">{s.notes as string}</p>
+            <p className="text-sm text-slate-300 mt-0.5">{s.notes}</p>
           </div>
         )}
       </div>
