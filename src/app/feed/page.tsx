@@ -5,6 +5,8 @@ import FollowButton from "@/components/FollowButton";
 import ClickablePhoto from "@/components/ClickablePhoto";
 import ReportButton from "@/components/ReportButton";
 import CatchReactions from "@/components/CatchReactions";
+import FeedComments from "@/components/FeedComments";
+import GuestFeedGate from "@/components/GuestFeedGate";
 import Avatar from "@/components/Avatar";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
 
@@ -94,11 +96,33 @@ export default async function FeedPage({
     })
     .slice(0, 40);
 
+  // Guest gate — limit to 4 posts for logged-out users
+  const visibleCatches = user ? catches : catches.slice(0, 4);
+
   // Bulk-fetch reactions for all visible catches
-  const catchIds = catches.map((c) => c.id);
+  const catchIds = visibleCatches.map((c) => c.id);
   const { data: allReactions } = catchIds.length > 0
     ? await supabase.from("catch_reactions").select("catch_id, emoji, user_id").in("catch_id", catchIds)
     : { data: [] };
+
+  // Bulk-fetch comments for all visible catches
+  const { data: allComments } = catchIds.length > 0
+    ? await supabase
+        .from("catch_comments")
+        .select("id, catch_id, content, created_at, profiles!user_id(id, username)")
+        .in("catch_id", catchIds)
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false })
+        .limit(300)
+    : { data: [] };
+
+  type FeedComment = { id: string; catch_id: string; content: string; created_at: string; profiles: { id: string; username: string } | null };
+  const commentsByCatch = new Map<string, FeedComment[]>();
+  (allComments ?? []).forEach((c) => {
+    const arr = commentsByCatch.get((c as unknown as FeedComment).catch_id) ?? [];
+    arr.push(c as unknown as FeedComment);
+    commentsByCatch.set((c as unknown as FeedComment).catch_id, arr);
+  });
 
   // Build per-catch reaction maps
   const reactionsByCatch = new Map<string, { emoji: string; count: number; reacted: boolean }[]>();
@@ -185,7 +209,7 @@ export default async function FeedPage({
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          {catches.map((c, catchIndex) => {
+          {visibleCatches.map((c, catchIndex) => {
             const showProTeaser = !isPro && catchIndex === 5;
             const fish = c.fish_species as unknown as { name: string } | null;
             const spot = c.spots as unknown as {
@@ -336,11 +360,20 @@ export default async function FeedPage({
                       currentUserReaction={userReactionByCatch.get(c.id) ?? null}
                       isLoggedIn={!!user}
                     />
+
+                    {/* Comments */}
+                    <FeedComments
+                      catchId={c.id}
+                      initialComments={commentsByCatch.get(c.id) ?? []}
+                      isLoggedIn={!!user}
+                      currentUserId={user?.id}
+                    />
                   </div>
                 </div>
               </div>
             );
           })}
+          {!user && catches.length > 4 && <GuestFeedGate />}
         </div>
       )}
     </div>

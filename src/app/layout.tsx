@@ -5,6 +5,7 @@ import MobileNav from "@/components/MobileNav";
 import ServiceWorkerInit from "@/components/ServiceWorkerInit";
 import { ToastProvider } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/server";
+import { Analytics } from "@vercel/analytics/next";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://hooklineapp.com";
 
@@ -80,6 +81,7 @@ export default async function RootLayout({
           <main className="pb-20 md:pb-0">{children}</main>
           <MobileNav user={user} unreadCount={unreadCount} isPro={isPro} />
         </ToastProvider>
+        <Analytics />
       </body>
     </html>
   );
