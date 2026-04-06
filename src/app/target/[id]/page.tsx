@@ -35,7 +35,7 @@ export default async function TargetSpeciesPage({ params }: { params: Promise<{ 
     .order("caught_at", { ascending: false })
     .limit(100);
 
-  const publicCatches = (catches ?? []).filter(c => !(c as Record<string, unknown>).is_private);
+  const publicCatches = (catches ?? []).filter(c => !(c as unknown as { is_private?: boolean }).is_private);
 
   // Aggregate top spots
   const spotMap: Record<string, { id: string; name: string; water_type: string; state: string | null; count: number; lastCaught: string }> = {};

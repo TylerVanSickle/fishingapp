@@ -62,18 +62,18 @@ export default async function ExplorePage() {
   ]);
 
   // Only show fully public catches on explore page
-  function isPublicOnly(c: Record<string, unknown>) {
-    const vis = c.visibility as string | undefined;
+  function isPublicOnly(c: { visibility?: string; is_private?: boolean }) {
+    const vis = c.visibility;
     const effective = vis ?? (c.is_private ? "private" : "public");
     return effective === "public";
   }
   const publicRecentCatches = (recentCatches ?? [])
-    .filter((c) => isPublicOnly(c as Record<string, unknown>))
+    .filter((c) => isPublicOnly(c as unknown as { visibility?: string; is_private?: boolean }))
     .slice(0, 6);
   const publicBigCatches = (bigCatches ?? [])
-    .filter((c) => isPublicOnly(c as Record<string, unknown>))
+    .filter((c) => isPublicOnly(c as unknown as { visibility?: string; is_private?: boolean }))
     .slice(0, 5);
-  const catchOfDay = (catchOfDayRaw ?? []).find(c => isPublicOnly(c as Record<string, unknown>)) ?? null;
+  const catchOfDay = (catchOfDayRaw ?? []).find(c => isPublicOnly(c as unknown as { visibility?: string; is_private?: boolean })) ?? null;
 
   // Aggregate trending spots
   const spotCounts: Record<string, { id: string; name: string; water_type: string; state: string | null; count: number }> = {};

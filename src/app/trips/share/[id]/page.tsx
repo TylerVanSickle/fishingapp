@@ -30,7 +30,7 @@ export default async function SharedTripPage({
 
   if (!trip) notFound();
 
-  const isPublic = (trip as Record<string, unknown>).is_public as boolean;
+  const isPublic = !!(trip as unknown as { is_public?: boolean }).is_public;
   if (!isPublic) {
     return (
       <div className="max-w-md mx-auto px-4 py-24 text-center">
@@ -57,10 +57,18 @@ export default async function SharedTripPage({
     .filter(Boolean) as { id: string; name: string; water_type: string; state: string | null }[];
 
   const profile = trip.profiles as unknown as { username: string } | null;
-  const baitPlan = (trip as Record<string, unknown>).bait_plan as string | null;
-  const gearNotes = (trip as Record<string, unknown>).gear_notes as string | null;
-  const checklist = ((trip as Record<string, unknown>).checklist as { text: string; done: boolean }[] | null) ?? [];
-  const targetSpeciesIds = ((trip as Record<string, unknown>).target_species as string[] | null) ?? [];
+  type SharedTripExtras = {
+    bait_plan?: string | null;
+    gear_notes?: string | null;
+    checklist?: { text: string; done: boolean }[] | null;
+    target_species?: string[] | null;
+  };
+  const tripEx = trip as unknown as SharedTripExtras;
+
+  const baitPlan = tripEx.bait_plan ?? null;
+  const gearNotes = tripEx.gear_notes ?? null;
+  const checklist = tripEx.checklist ?? [];
+  const targetSpeciesIds = tripEx.target_species ?? [];
 
   // Fetch species names if any targeted
   let speciesNames: string[] = [];

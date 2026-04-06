@@ -89,8 +89,9 @@ export default async function AnglerProfilePage({
   // Filter catches by visibility
   const visibleCatches = (catches ?? []).filter((c) => {
     if (isOwnProfile) return true;
-    const vis = (c as Record<string, unknown>).visibility as string | undefined;
-    const effective = vis ?? ((c as Record<string, unknown>).is_private ? "private" : "public");
+    const cx = c as unknown as { visibility?: string; is_private?: boolean };
+    const vis = cx.visibility;
+    const effective = vis ?? (cx.is_private ? "private" : "public");
     if (effective === "public") return true;
     if (effective === "friends") return isMutualFollow;
     return false;

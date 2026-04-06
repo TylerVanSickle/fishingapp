@@ -48,16 +48,25 @@ export default async function TripDetailPage({
     .map((ts) => ts.spots)
     .filter(Boolean) as { id: string; name: string; water_type: string; state: string | null; longitude: number | null }[];
 
+  type TripExtras = {
+    bait_plan?: string | null;
+    gear_notes?: string | null;
+    checklist?: { text: string; done: boolean }[] | null;
+    target_species?: string[] | null;
+    is_public?: boolean;
+  };
+  const tripEx = trip as unknown as TripExtras;
+
   const tripData = {
     id: trip.id,
     name: trip.name,
     description: trip.description ?? null,
     planned_date: trip.planned_date ?? null,
-    bait_plan: (trip as Record<string, unknown>).bait_plan as string | null ?? null,
-    gear_notes: (trip as Record<string, unknown>).gear_notes as string | null ?? null,
-    checklist: ((trip as Record<string, unknown>).checklist as { text: string; done: boolean }[] | null) ?? [],
-    target_species: ((trip as Record<string, unknown>).target_species as string[] | null) ?? [],
-    is_public: ((trip as Record<string, unknown>).is_public as boolean) ?? false,
+    bait_plan: tripEx.bait_plan ?? null,
+    gear_notes: tripEx.gear_notes ?? null,
+    checklist: tripEx.checklist ?? [],
+    target_species: tripEx.target_species ?? [],
+    is_public: tripEx.is_public ?? false,
     user_id: trip.user_id,
   };
 

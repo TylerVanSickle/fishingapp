@@ -18,7 +18,11 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
 
   if (!setup) notFound();
 
-  const s = setup as Record<string, unknown>;
+  type Setup = {
+    id: string; name: string | null; rod: string | null; reel: string | null;
+    line: string | null; leader: string | null; notes: string | null;
+  };
+  const s = setup as unknown as Setup;
 
   const { data: catches } = await supabase
     .from("catches")

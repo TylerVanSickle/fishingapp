@@ -108,7 +108,7 @@ export default async function TripsPage() {
             const checklist = (trip.checklist as unknown as ChecklistItem[] | null) ?? [];
             const spotCount = (trip.trip_spots as { spot_id: string }[])?.length ?? 0;
             const doneCount = checklist.filter((c) => c.done).length;
-            const isPublic = (trip as Record<string, unknown>).is_public as boolean;
+            const isPublic = !!(trip as unknown as { is_public?: boolean }).is_public;
 
             return (
               <Link

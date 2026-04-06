@@ -69,8 +69,9 @@ export default function EditCatchPage() {
       setLengthIn(c.length_in != null ? String(c.length_in) : "");
       setCaughtAt(c.caught_at ? new Date(c.caught_at).toISOString().slice(0, 16) : "");
       setNotes(c.notes ?? "");
-      const v = (c as Record<string, unknown>).visibility as Visibility | undefined;
-      const priv = !!(c as Record<string, unknown>).is_private;
+      const cx = c as unknown as { visibility?: Visibility; is_private?: boolean };
+      const v = cx.visibility;
+      const priv = !!cx.is_private;
       setVisibility(v ?? (priv ? "private" : "public"));
       setExistingPhotoUrl(c.photo_url ?? null);
 

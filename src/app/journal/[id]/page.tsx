@@ -25,8 +25,14 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
 
   if (!entry) notFound();
 
-  const e = entry as Record<string, unknown>;
-  const outingDate = new Date((e.outing_date as string) + "T12:00:00");
+  type Entry = {
+    id: string; title: string | null; outing_date: string; mood: string | null;
+    weather: string | null; wind: string | null; temp_f: number | null;
+    water_temp_f: number | null; water_clarity: string | null;
+    body: string | null; created_at: string;
+  };
+  const e = entry as unknown as Entry;
+  const outingDate = new Date(e.outing_date + "T12:00:00");
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
@@ -53,7 +59,7 @@ export default async function JournalEntryPage({ params }: { params: Promise<{ i
       </div>
 
       {/* Conditions card */}
-      {(e.weather || e.wind || e.temp_f != null || e.water_temp_f != null || e.water_clarity) && (
+      {!!(e.weather || e.wind || e.temp_f != null || e.water_temp_f != null || e.water_clarity) && (
         <div className="mb-6 p-4 rounded-2xl border border-white/8 bg-white/2">
           <p className="text-xs font-semibold text-slate-500 uppercase tracking-widest mb-3">Conditions</p>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
