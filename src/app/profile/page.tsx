@@ -293,6 +293,22 @@ export default async function ProfilePage() {
         ))}
       </div>
 
+      {/* ── Pro subscription ──────────────────────────────────────── */}
+      {isPro && (
+        <div className="flex items-center justify-between p-4 rounded-2xl border border-amber-500/20 bg-amber-500/5">
+          <div className="flex items-center gap-3">
+            <Sparkles size={16} className="text-amber-400" />
+            <div>
+              <p className="text-sm font-semibold text-white">HookLine Pro</p>
+              <p className="text-xs text-slate-500">Active subscription</p>
+            </div>
+          </div>
+          <Link href="/pro/manage" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 text-xs font-medium transition-colors">
+            <ExternalLink size={11} /> Manage
+          </Link>
+        </div>
+      )}
+
       {/* ── Catches by month chart ─────────────────────────────────── */}
       {totalCatches > 0 && (
         <div className="p-5 rounded-2xl border border-white/8 bg-white/2">

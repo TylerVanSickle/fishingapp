@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Map, Users, Bell, User, Plus, Grid3x3, X,
   Compass, Trophy, Fish, Waves, CloudSun,
-  BookOpen, Package, Route, FileText, Star, MapPin,
+  BookOpen, Package, Route, FileText, Star, MapPin, Sparkles,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -255,6 +255,15 @@ export default function MobileNav({
                 <User size={16} />
                 <span className="text-sm font-medium">Edit Profile</span>
               </Link>
+              {isPro && (
+                <Link
+                  href="/pro/manage"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-500/8 text-amber-300 col-span-2"
+                >
+                  <Sparkles size={16} />
+                  <span className="text-sm font-medium">Manage Pro</span>
+                </Link>
+              )}
             </div>
           </div>
         </div>
