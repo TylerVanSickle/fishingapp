@@ -54,7 +54,7 @@ export default async function LogbookPage({ searchParams }: { searchParams: Sear
   // Compute quick stats from result set
   const totalCatches = catches?.length ?? 0;
   const withWeight = catches?.filter(c => c.weight_lbs != null) ?? [];
-  const heaviest = withWeight.reduce((best, c) => c.weight_lbs! > (best?.weight_lbs ?? 0) ? c : best, null as typeof catches[0] | null);
+  const heaviest = withWeight.reduce<(typeof withWeight)[0] | null>((best, c) => c.weight_lbs! > (best?.weight_lbs ?? 0) ? c : best, null);
   const totalWeight = withWeight.reduce((sum, c) => sum + (c.weight_lbs ?? 0), 0);
   const speciesSet = new Set(catches?.map(c => (c.fish_species as unknown as { id: string } | null)?.id).filter(Boolean));
   const withPhoto = catches?.filter(c => c.photo_url).length ?? 0;

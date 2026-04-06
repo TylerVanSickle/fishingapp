@@ -30,7 +30,7 @@ export default async function GearDetailPage({ params }: { params: Promise<{ id:
 
   const withWeight = (catches ?? []).filter(c => c.weight_lbs != null);
   const totalWeight = withWeight.reduce((sum, c) => sum + (c.weight_lbs ?? 0), 0);
-  const heaviest = withWeight.reduce((best, c) => c.weight_lbs! > (best?.weight_lbs ?? 0) ? c : best, null as typeof catches[0] | null);
+  const heaviest = withWeight.reduce<(typeof withWeight)[0] | null>((best, c) => c.weight_lbs! > (best?.weight_lbs ?? 0) ? c : best, null);
   const speciesSet = new Set((catches ?? []).map(c => (c.fish_species as unknown as { name: string } | null)?.name).filter(Boolean));
 
   return (
