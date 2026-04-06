@@ -1,44 +1,45 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Fish, ArrowLeft, Mail, MessageSquare, Sparkles, ShieldCheck, Bug } from "lucide-react";
+import { Fish, ArrowLeft, ShieldCheck } from "lucide-react";
+import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
   title: "Contact & Support",
-  description: "Get help with HookLine — contact support or browse common questions.",
+  description: "Get help with HookLine — contact our support team or browse common questions.",
 };
 
 const FAQS = [
   {
-    q: "How do I cancel my Pro subscription?",
-    a: "Go to your Profile → Manage Pro → Manage in Stripe Portal. From there you can cancel, switch plans, or update your payment method. You keep Pro access until the end of your billing period.",
+    q: "How do I cancel or change my Pro subscription?",
+    a: "Navigate to your Profile, then tap 'Manage Pro.' From there you can switch between monthly and annual billing, update your payment method, or cancel your subscription through our secure billing portal. Your Pro access remains active through the end of the current billing period.",
   },
   {
-    q: "My is_pro didn't activate after subscribing.",
-    a: "This is usually a webhook delay. Wait 60 seconds and refresh. If it still shows free, email us with your account email and we'll activate it manually.",
+    q: "My Pro subscription is active in Stripe but the app still shows the free plan.",
+    a: "This is typically resolved within 60 seconds as our system processes the subscription confirmation. Try refreshing the app. If the issue persists after a few minutes, contact us with your account email and we'll manually verify and activate your account.",
   },
   {
-    q: "How do I delete my account?",
-    a: "Email us at the address below with the subject 'Delete my account' and we'll remove all your data within 30 days per our privacy policy.",
+    q: "How do I report an inaccurate fishing spot?",
+    a: "Open the spot detail page and use the Report button. Our moderation team reviews all reports and corrects or removes inaccurate information, usually within 24–48 hours.",
   },
   {
-    q: "A fishing spot has wrong information.",
-    a: "Use the Report button on the spot page. Our team reviews reports and corrects or removes inaccurate spots.",
+    q: "Can I export my catch history?",
+    a: "Yes. Go to My Logbook and select Export CSV. This downloads your full catch history as a spreadsheet you can open in Excel or Google Sheets.",
   },
   {
-    q: "Can I export my catch data?",
-    a: "Yes — go to My Logbook → Export CSV. This downloads all your catches as a spreadsheet.",
+    q: "How do I submit a new fishing spot to the map?",
+    a: "Use the Submit a Spot option from the map page. New spots are reviewed by our team before going live to ensure quality and accuracy across the platform.",
   },
   {
-    q: "The app isn't loading or something looks broken.",
-    a: "Try a hard refresh (Ctrl+Shift+R on desktop). If the issue persists, email us with what page you were on and what you saw.",
+    q: "Is my catch and location data private?",
+    a: "You have full control over your privacy. Catches can be set to Public, Friends Only, or Private when logging. Location data is only used when you actively use map features — we do not track your location in the background.",
   },
   {
-    q: "How do I get my spot added to the map?",
-    a: "Use the Submit a Spot page from the map. Spots are reviewed and approved by our team before going live.",
+    q: "How do I delete my account and data?",
+    a: "Send us a message using the form below with the subject 'Account Deletion.' We will permanently remove your account and all associated data within 30 days in accordance with our Privacy Policy.",
   },
   {
-    q: "Is HookLine available on iOS and Android?",
-    a: "We're working on App Store and Google Play submissions. For now, you can add HookLine to your home screen from your browser for an app-like experience.",
+    q: "Is HookLine available as a mobile app?",
+    a: "HookLine is optimized for mobile browsers and can be added to your home screen for a full app experience. Native iOS and Android apps are currently in development and will be available on the App Store and Google Play soon.",
   },
 ];
 
@@ -55,74 +56,30 @@ export default function ContactPage() {
         </div>
         <h1 className="text-2xl font-bold text-white">Contact & Support</h1>
       </div>
-      <p className="text-slate-500 text-sm mb-10">We&apos;re a small team — we read every message.</p>
+      <p className="text-slate-500 text-sm mb-10">
+        We read every message and typically respond within 24–48 hours, Monday–Friday.
+      </p>
 
-      {/* Contact cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-12">
-        <a
-          href="mailto:support@hooklineapp.com"
-          className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/8 bg-white/2 hover:border-white/15 hover:bg-white/4 transition-all text-center group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Mail size={18} className="text-blue-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">General Support</p>
-            <p className="text-xs text-slate-500 mt-0.5">support@hooklineapp.com</p>
-          </div>
-        </a>
-
-        <a
-          href="mailto:billing@hooklineapp.com"
-          className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/8 bg-white/2 hover:border-white/15 hover:bg-white/4 transition-all text-center group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Sparkles size={18} className="text-amber-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Billing & Pro</p>
-            <p className="text-xs text-slate-500 mt-0.5">billing@hooklineapp.com</p>
-          </div>
-        </a>
-
-        <a
-          href="mailto:bugs@hooklineapp.com"
-          className="flex flex-col items-center gap-2 p-5 rounded-2xl border border-white/8 bg-white/2 hover:border-white/15 hover:bg-white/4 transition-all text-center group"
-        >
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/20 flex items-center justify-center group-hover:scale-105 transition-transform">
-            <Bug size={18} className="text-red-400" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-white">Bug Reports</p>
-            <p className="text-xs text-slate-500 mt-0.5">bugs@hooklineapp.com</p>
-          </div>
-        </a>
-      </div>
-
-      {/* Response time */}
-      <div className="flex items-center gap-3 p-4 rounded-xl bg-green-500/5 border border-green-500/15 mb-12">
-        <MessageSquare size={16} className="text-green-400 shrink-0" />
-        <p className="text-sm text-slate-400">
-          We typically respond within <strong className="text-white">24–48 hours</strong>, Monday–Friday.
-        </p>
+      {/* Contact form */}
+      <div className="p-6 rounded-2xl border border-white/8 bg-white/2 mb-14">
+        <h2 className="text-base font-semibold text-white mb-1">Send us a message</h2>
+        <p className="text-xs text-slate-500 mb-6">Fill out the form below and we&apos;ll get back to you by email.</p>
+        <ContactForm />
       </div>
 
       {/* FAQ */}
       <div>
         <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-          <ShieldCheck size={16} className="text-slate-500" /> Common Questions
+          <ShieldCheck size={16} className="text-slate-500" /> Frequently Asked Questions
         </h2>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {FAQS.map(({ q, a }) => (
-            <details
-              key={q}
-              className="group rounded-2xl border border-white/8 bg-white/2 overflow-hidden"
-            >
+            <details key={q} className="group rounded-2xl border border-white/8 bg-white/2 overflow-hidden">
               <summary className="flex items-center justify-between gap-3 p-5 cursor-pointer list-none hover:bg-white/3 transition-colors">
                 <span className="text-sm font-medium text-slate-200">{q}</span>
-                <span className="text-slate-600 group-open:rotate-45 transition-transform text-lg shrink-0">+</span>
+                <span className="text-slate-600 group-open:rotate-45 transition-transform duration-200 text-lg leading-none shrink-0">+</span>
               </summary>
-              <div className="px-5 pb-5">
+              <div className="px-5 pb-5 pt-1">
                 <p className="text-sm text-slate-400 leading-relaxed">{a}</p>
               </div>
             </details>
@@ -130,7 +87,6 @@ export default function ContactPage() {
         </div>
       </div>
 
-      {/* Footer links */}
       <div className="mt-10 pt-6 border-t border-white/6 flex items-center gap-4 text-xs text-slate-600">
         <Link href="/privacy" className="hover:text-slate-400 transition-colors">Privacy Policy</Link>
         <Link href="/terms" className="hover:text-slate-400 transition-colors">Terms of Service</Link>
