@@ -8,12 +8,12 @@ export const PLANS = {
   monthly: {
     priceId: process.env.STRIPE_MONTHLY_PRICE_ID!,
     label: "Monthly",
-    amount: "$15/mo",
+    amount: "$9.99/mo",
   },
   annual: {
     priceId: process.env.STRIPE_ANNUAL_PRICE_ID!,
     label: "Annual",
-    amount: "$150/yr",
+    amount: "$79.99/yr",
   },
 } as const;
 

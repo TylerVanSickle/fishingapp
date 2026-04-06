@@ -42,7 +42,9 @@ export async function POST(req: NextRequest) {
 
   const origin = req.headers.get("origin") ?? "http://localhost:3000";
 
-  const session = await stripe.checkout.sessions.create({
+  let session;
+  try {
+    session = await stripe.checkout.sessions.create({
     customer: customerId,
     mode: "subscription",
     line_items: [{ price: priceId, quantity: 1 }],
@@ -53,7 +55,11 @@ export async function POST(req: NextRequest) {
     },
     allow_promotion_codes: true,
     metadata: { supabase_user_id: user.id },
-  });
+    });
+  } catch (err) {
+    console.error("Stripe checkout error:", err);
+    return NextResponse.json({ error: (err as Error).message }, { status: 500 });
+  }
 
   return NextResponse.json({ url: session.url });
 }

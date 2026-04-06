@@ -2,6 +2,7 @@
 
 import { useTransition } from "react";
 import { setCatchReaction } from "@/lib/actions/social";
+import { hapticLight } from "@/lib/native";
 
 const EMOJIS = ["🎣", "💪", "🏆", "🔥", "❄️"];
 
@@ -24,6 +25,7 @@ export default function CatchReactions({ catchId, reactions, currentUserReaction
     if (!isLoggedIn) return;
     const next = currentUserReaction === emoji ? null : emoji;
     startTransition(async () => {
+      await hapticLight();
       await setCatchReaction(catchId, next);
     });
   }

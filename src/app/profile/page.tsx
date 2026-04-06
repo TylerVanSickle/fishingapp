@@ -180,7 +180,7 @@ export default async function ProfilePage() {
   const hasAnyBadge = earnedBadges.some(b => b.earned);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-4xl mx-auto px-4 py-6 pb-10 space-y-5">
 
       {/* ── Profile header ─────────────────────────────────────────── */}
       <div className="p-6 rounded-2xl border border-white/8 bg-white/2 flex items-start gap-5">

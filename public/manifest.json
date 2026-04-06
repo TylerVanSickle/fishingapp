@@ -1,0 +1,36 @@
+{
+  "name": "HookLine",
+  "short_name": "HookLine",
+  "description": "Discover fishing spots, log catches, and connect with anglers across all 50 states.",
+  "start_url": "/map",
+  "display": "standalone",
+  "background_color": "#060d1a",
+  "theme_color": "#2563eb",
+  "orientation": "portrait-primary",
+  "categories": ["sports", "lifestyle", "outdoors"],
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Log a Catch",
+      "short_name": "Log Catch",
+      "description": "Quickly log a new catch",
+      "url": "/log-catch",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    },
+    {
+      "name": "Spot Map",
+      "short_name": "Map",
+      "description": "Browse fishing spots near you",
+      "url": "/map",
+      "icons": [{ "src": "/icon.svg", "sizes": "any" }]
+    }
+  ]
+}

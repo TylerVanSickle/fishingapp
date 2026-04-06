@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { Bookmark } from "lucide-react";
 import { toggleSaveSpot } from "@/lib/actions/spots";
 import { useToast } from "@/components/ui/Toaster";
+import { hapticSuccess, hapticLight } from "@/lib/native";
 
 export default function SaveSpotButton({ spotId, initialSaved }: { spotId: string; initialSaved: boolean }) {
   const [saved, setSaved] = useState(initialSaved);
@@ -16,6 +17,7 @@ export default function SaveSpotButton({ spotId, initialSaved }: { spotId: strin
     startTransition(async () => {
       try {
         await toggleSaveSpot(spotId, saved);
+        next ? await hapticSuccess() : await hapticLight();
         toast(next ? "Spot saved!" : "Removed from saved spots");
       } catch {
         setSaved(saved);

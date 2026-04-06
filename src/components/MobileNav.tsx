@@ -168,7 +168,7 @@ export default function MobileNav({
           </button>
         </div>
 
-        <div className="px-4 py-4 space-y-5 pb-32">
+        <div className="px-4 py-4 space-y-5 pb-safe" style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 2rem)' }}>
           {MORE_SECTIONS.map((section) => {
             // Hide pro-only section if not pro (show upgrade prompt instead)
             const visibleItems = section.items.filter((item) => !item.pro || isPro);

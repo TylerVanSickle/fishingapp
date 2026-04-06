@@ -39,10 +39,26 @@ export async function rateSpot(spotId: string, rating: number) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error("Must be logged in");
 
+  const { data: existing } = await supabase.from("spot_ratings")
+    .select("id").eq("spot_id", spotId).eq("user_id", user.id).single();
+
   await supabase.from("spot_ratings").upsert(
     { spot_id: spotId, user_id: user.id, rating },
     { onConflict: "spot_id,user_id" }
   );
+
+  // Notify spot owner on first rating (not on update)
+  if (!existing) {
+    const { data: spotRow } = await supabase.from("spots").select("user_id").eq("id", spotId).single();
+    if (spotRow && spotRow.user_id && spotRow.user_id !== user.id) {
+      await supabase.from("notifications").insert({
+        user_id: spotRow.user_id,
+        type: "spot_rating",
+        actor_id: user.id,
+        entity_id: spotId,
+      });
+    }
+  }
 
   revalidatePath(`/spots/${spotId}`);
 }
@@ -60,12 +76,24 @@ export async function addSpotComment(spotId: string, body: string) {
   const filterErr = filterCheck(trimmed);
   if (filterErr) throw new Error(filterErr);
 
-  await supabase.from("spot_comments").insert({
+  const { data: inserted } = await supabase.from("spot_comments").insert({
     spot_id: spotId,
     user_id: user.id,
     body: trimmed,
-  });
+  }).select("id").single();
 
+  // Notify spot owner (skip if commenting on own spot)
+  const { data: spotRow } = await supabase.from("spots").select("user_id").eq("id", spotId).single();
+  if (spotRow && spotRow.user_id && spotRow.user_id !== user.id) {
+    await supabase.from("notifications").insert({
+      user_id: spotRow.user_id,
+      type: "spot_comment",
+      actor_id: user.id,
+      entity_id: spotId,
+    });
+  }
+
+  void inserted;
   revalidatePath(`/spots/${spotId}`);
 }
 

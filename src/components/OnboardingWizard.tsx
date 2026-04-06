@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Fish, MapPin, ChevronRight, Check, Waves, ArrowLeft, Sparkles } from "lucide-react";
+import { Fish, MapPin, ChevronRight, Check, Waves, ArrowLeft, Sparkles, Wrench } from "lucide-react";
 import { completeOnboarding } from "@/lib/actions/onboarding";
 
 const US_STATES = [
@@ -24,9 +24,32 @@ export default function OnboardingWizard({ username, species }: Props) {
   const [step, setStep] = useState(0);
   const [homeState, setHomeState] = useState("");
   const [selectedSpecies, setSelectedSpecies] = useState<Set<string>>(new Set());
+  const [selectedTechniques, setSelectedTechniques] = useState<Set<string>>(new Set());
   const [isPending, startTransition] = useTransition();
 
-  const TOTAL_STEPS = 2; // steps 1 & 2 (step 0 is welcome)
+  const TOTAL_STEPS = 3; // steps 1, 2, 3 (step 0 is welcome)
+
+  const TECHNIQUES = [
+    { id: "spin", label: "Spin Casting", emoji: "🎣" },
+    { id: "bait", label: "Bait Fishing", emoji: "🪱" },
+    { id: "fly", label: "Fly Fishing", emoji: "🪰" },
+    { id: "lure", label: "Lure / Jigging", emoji: "🐟" },
+    { id: "ice", label: "Ice Fishing", emoji: "🧊" },
+    { id: "trolling", label: "Trolling", emoji: "⛵" },
+    { id: "shore", label: "Shore / Bank", emoji: "🏖️" },
+    { id: "kayak", label: "Kayak Fishing", emoji: "🚣" },
+    { id: "float", label: "Float / Bobber", emoji: "🔵" },
+    { id: "deep_sea", label: "Deep Sea", emoji: "🌊" },
+  ];
+
+  function toggleTechnique(id: string) {
+    setSelectedTechniques((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   function toggleSpecies(id: string) {
     setSelectedSpecies((prev) => {
@@ -42,6 +65,7 @@ export default function OnboardingWizard({ username, species }: Props) {
       const fd = new FormData();
       if (homeState) fd.append("home_state", homeState);
       selectedSpecies.forEach((id) => fd.append("species_ids", id));
+      selectedTechniques.forEach((t) => fd.append("techniques", t));
       await completeOnboarding(fd);
     });
   }
@@ -59,7 +83,7 @@ export default function OnboardingWizard({ username, species }: Props) {
 
         {step > 0 && (
           <div className="flex items-center gap-2">
-            {[1, 2].map((i) => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className={`h-1 rounded-full transition-all duration-300 ${i <= step ? "bg-blue-500 w-10" : "bg-white/10 w-5"}`} />
             ))}
             <span className="text-xs text-slate-600 ml-1">{step}/{TOTAL_STEPS}</span>
@@ -218,6 +242,64 @@ export default function OnboardingWizard({ username, species }: Props) {
               </div>
 
               <button
+                onClick={() => setStep(3)}
+                className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all hover:shadow-xl hover:shadow-blue-600/25 flex items-center justify-center gap-2"
+              >
+                {selectedSpecies.size > 0 ? `Continue` : "Skip for now"} <ChevronRight size={18} />
+              </button>
+            </div>
+          )}
+
+          {/* ── Step 3: Fishing techniques ──────────────────── */}
+          {step === 3 && (
+            <div>
+              <button
+                onClick={() => setStep(2)}
+                className="inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-300 transition-colors mb-8"
+              >
+                <ArrowLeft size={14} /> Back
+              </button>
+
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/15 flex items-center justify-center">
+                  <Wrench className="text-violet-400" size={20} />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">How do you fish?</h2>
+                  <p className="text-slate-500 text-sm">Your preferred techniques</p>
+                </div>
+              </div>
+
+              <p className="text-slate-400 text-sm mb-6 pl-13">
+                We&apos;ll use this to rank spots and tailor Pro recommendations to your style.
+                {selectedTechniques.size > 0 && (
+                  <span className="ml-1 text-violet-400 font-medium">{selectedTechniques.size} selected</span>
+                )}
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 mb-6">
+                {TECHNIQUES.map(({ id, label, emoji }) => {
+                  const sel = selectedTechniques.has(id);
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => toggleTechnique(id)}
+                      className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl text-sm font-medium border transition-all ${
+                        sel
+                          ? "bg-violet-600 border-violet-500 text-white shadow-md shadow-violet-600/20"
+                          : "bg-white/4 border-white/8 text-slate-400 hover:text-slate-200 hover:border-white/15"
+                      }`}
+                    >
+                      <span className="text-base">{emoji}</span>
+                      {label}
+                      {sel && <Check size={12} className="ml-auto shrink-0" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
                 onClick={handleSubmit}
                 disabled={isPending}
                 className="w-full py-3.5 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all hover:shadow-xl hover:shadow-blue-600/25 flex items-center justify-center gap-2 disabled:opacity-50"
@@ -227,7 +309,7 @@ export default function OnboardingWizard({ username, species }: Props) {
                 ) : (
                   <>
                     <Sparkles size={16} />
-                    {selectedSpecies.size > 0 ? `Finish setup` : "Skip & finish"}
+                    {selectedTechniques.size > 0 ? "Finish setup" : "Skip & finish"}
                   </>
                 )}
               </button>

@@ -1,18 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import {
-  TrendingUp,
-  Scale,
-  Ruler,
-  MapPin,
-  Fish,
-  Users,
-  Lock,
-  Sparkles,
-} from "lucide-react";
+import { Scale, Ruler, MapPin, Fish, Users, Lock, Sparkles, Zap } from "lucide-react";
 import FollowButton from "@/components/FollowButton";
 import ClickablePhoto from "@/components/ClickablePhoto";
 import ReportButton from "@/components/ReportButton";
+import CatchReactions from "@/components/CatchReactions";
+import Avatar from "@/components/Avatar";
 import { computeFishingScore, scoreLabel } from "@/lib/fishingScore";
 
 function timeAgo(dateStr: string) {
@@ -84,11 +77,7 @@ export default async function FeedPage({
     query = query.eq("user_id", "00000000-0000-0000-0000-000000000000");
   }
 
-  const { data: rawCatches, error: catchError } = await query;
-
-  // eslint-disable-next-line no-console
-  if (catchError)
-    console.error("[feed] catches query error:", catchError.message);
+  const { data: rawCatches } = await query;
 
   // Filter by visibility
   const catches = (rawCatches ?? [])
@@ -105,25 +94,44 @@ export default async function FeedPage({
     })
     .slice(0, 40);
 
+  // Bulk-fetch reactions for all visible catches
+  const catchIds = catches.map((c) => c.id);
+  const { data: allReactions } = catchIds.length > 0
+    ? await supabase.from("catch_reactions").select("catch_id, emoji, user_id").in("catch_id", catchIds)
+    : { data: [] };
+
+  // Build per-catch reaction maps
+  const reactionsByCatch = new Map<string, { emoji: string; count: number; reacted: boolean }[]>();
+  const userReactionByCatch = new Map<string, string | null>();
+  const EMOJIS = ["🎣", "💪", "🏆", "🔥", "❄️"];
+  catchIds.forEach((id) => {
+    const rows = (allReactions ?? []).filter((r) => r.catch_id === id);
+    const counts = new Map<string, number>();
+    rows.forEach((r) => counts.set(r.emoji, (counts.get(r.emoji) ?? 0) + 1));
+    reactionsByCatch.set(id, EMOJIS.map((e) => ({ emoji: e, count: counts.get(e) ?? 0, reacted: rows.some((r) => r.emoji === e && r.user_id === user?.id) })));
+    userReactionByCatch.set(id, rows.find((r) => r.user_id === user?.id)?.emoji ?? null);
+  });
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
-      {/* Header */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-blue-600/15 border border-blue-500/20 flex items-center justify-center">
-          <TrendingUp className="text-blue-400" size={20} />
+    <div className="max-w-2xl mx-auto px-4 py-6">
+      {/* Conditions banner */}
+      <div className="flex items-center gap-3 px-4 py-3 rounded-2xl border border-white/8 bg-white/2 mb-5">
+        <div className="w-8 h-8 rounded-lg bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center shrink-0">
+          <Zap size={14} className="text-yellow-400" />
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-white leading-tight">
-            Activity Feed
-          </h1>
-          <p className="text-slate-500 text-xs">
-            Recent catches from the community
+        <div className="flex-1 min-w-0">
+          <p className="text-xs text-slate-500">Conditions right now</p>
+          <p className="text-sm font-semibold" style={{ color: feedSolunarLabel.color }}>
+            {feedSolunarLabel.label} — solunar {feedSolunarScore}/10
           </p>
         </div>
+        <Link href="/forecast" className="text-xs text-blue-400 hover:text-blue-300 transition-colors shrink-0">
+          Full forecast →
+        </Link>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mb-6">
+      <div className="flex gap-2 mb-5">
         <Link
           href="/feed"
           className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -149,34 +157,31 @@ export default async function FeedPage({
       </div>
 
       {showFollowing && followingIds.length === 0 ? (
-        <div className="text-center py-16 text-slate-600">
-          <Users size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm mb-1">You&apos;re not following anyone yet.</p>
-          <p className="text-xs text-slate-700">
-            Visit an angler&apos;s profile and hit Follow to see their catches
-            here.
-          </p>
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center mx-auto mb-4">
+            <Users size={28} className="text-slate-600" />
+          </div>
+          <p className="text-base font-medium text-slate-400 mb-1">No one followed yet</p>
+          <p className="text-sm text-slate-600 mb-4">Follow other anglers to see their catches here.</p>
+          <Link href="/explore" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+            Discover anglers →
+          </Link>
         </div>
       ) : !catches || catches.length === 0 ? (
-        <div className="text-center py-16 text-slate-600">
-          <Fish size={40} className="mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No catches logged yet. Be the first!</p>
-          {catchError && (
-            <p className="text-xs text-red-400 mt-2 font-mono bg-red-500/10 px-3 py-2 rounded-lg">
-              Query error: {catchError.message}
-            </p>
-          )}
-          {/* {!catchError && rawCatches !== null && (
-            <p className="text-xs text-slate-700 mt-1">
-              (DB returned {rawCatches.length} rows, {catches.length} after filter)
-            </p>
-          )} */}
-          <Link
-            href="/log-catch"
-            className="text-blue-500 hover:text-blue-400 text-sm mt-2 inline-block"
-          >
-            Log a catch →
-          </Link>
+        <div className="text-center py-16">
+          <div className="w-16 h-16 rounded-2xl bg-white/4 border border-white/8 flex items-center justify-center mx-auto mb-4">
+            <Fish size={28} className="text-slate-600" />
+          </div>
+          <p className="text-base font-medium text-slate-400 mb-1">No catches yet</p>
+          <p className="text-sm text-slate-600 mb-4">Be the first to log a catch and show up in the feed.</p>
+          <div className="flex items-center justify-center gap-2 flex-wrap">
+            <Link href="/log-catch" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+              Log a catch
+            </Link>
+            <Link href="/map" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-slate-300 hover:text-white text-sm font-medium transition-colors">
+              Find a spot
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -238,105 +243,99 @@ export default async function FeedPage({
                     </div>
                   </div>
                 )}
-                <div className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden group relative">
+                <div className="rounded-2xl border border-white/8 bg-white/2 overflow-hidden">
                   {/* Photo */}
                   {c.photo_url && (
                     <ClickablePhoto
                       src={c.photo_url}
                       alt={fish?.name ?? "Catch photo"}
-                      className="w-full max-h-64 object-contain bg-black/30"
+                      className="w-full h-72 object-contain bg-black/40"
                       thumbClassName="w-full"
                     />
                   )}
 
-                  <div className="p-4 flex flex-col gap-2">
-                    {/* Species + metrics row */}
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <Link
-                        href={`/catches/${c.id}`}
-                        className="font-bold text-slate-200 hover:text-blue-300 transition-colors"
-                      >
-                        {fish?.name ?? "Unknown Species"}
-                      </Link>
-                      <div className="flex items-center gap-3">
-                        {c.weight_lbs != null && (
-                          <span className="flex items-center gap-1 text-xs text-slate-400">
-                            <Scale size={11} className="text-slate-500" />
-                            {c.weight_lbs} lbs
-                          </span>
+                  <div className="p-4 flex flex-col gap-3">
+                    {/* Top row: avatar + name + time */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
+                        {profile && (
+                          <Link href={`/anglers/${profile.id}`}>
+                            <Avatar url={null} username={profile.username} size={30} />
+                          </Link>
                         )}
-                        {c.length_in != null && (
-                          <span className="flex items-center gap-1 text-xs text-slate-400">
-                            <Ruler size={11} className="text-slate-500" />
-                            {c.length_in}&quot;
-                          </span>
+                        <div>
+                          {profile ? (
+                            <Link href={`/anglers/${profile.id}`} className="text-sm font-semibold text-slate-200 hover:text-blue-300 transition-colors">
+                              @{profile.username}
+                            </Link>
+                          ) : (
+                            <span className="text-sm text-slate-600">@angler</span>
+                          )}
+                          <p className="text-[10px] text-slate-600">{timeAgo(c.caught_at)}</p>
+                        </div>
+                        {user && profile && profile.id !== user.id && (
+                          <FollowButton targetUserId={profile.id} isFollowing={followingIds.includes(profile.id)} compact />
                         )}
                       </div>
-                    </div>
-
-                    {/* Spot link + bait badge */}
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {spot && (
-                        <Link
-                          href={`/spots/${spot.id}`}
-                          className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                        >
-                          <MapPin size={10} />
-                          {spot.name}
-                        </Link>
-                      )}
-                      {bait && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-400">
-                          {bait.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Notes */}
-                    {c.notes && (
-                      <p className="text-sm text-slate-400 line-clamp-3">
-                        {c.notes}
-                      </p>
-                    )}
-
-                    {/* Footer: username + follow + time */}
-                    <div className="flex items-center justify-between mt-1 flex-wrap gap-2">
                       <div className="flex items-center gap-2">
-                        {profile ? (
-                          <Link
-                            href={`/anglers/${profile.id}`}
-                            className="text-xs text-slate-500 hover:text-blue-400 transition-colors font-medium"
-                          >
-                            @{profile.username}
-                          </Link>
-                        ) : (
-                          <span className="text-xs text-slate-600">
-                            @angler
-                          </span>
-                        )}
-                        {/* Inline follow button — only for other users */}
-                        {user && profile && profile.id !== user.id && (
-                          <FollowButton
-                            targetUserId={profile.id}
-                            isFollowing={followingIds.includes(profile.id)}
-                            compact
-                          />
-                        )}
                         {(() => {
                           const vis = (c as Record<string, unknown>).visibility as string | undefined;
                           const effective = vis ?? (c.is_private ? "private" : "public");
-                          if (effective === "private") return <span className="inline-flex items-center gap-1 text-xs text-amber-500/70"><Lock size={10} /> Private</span>;
-                          if (effective === "friends") return <span className="inline-flex items-center gap-1 text-xs text-green-500/70"><Users size={10} /> Friends</span>;
+                          if (effective === "private") return <span className="inline-flex items-center gap-1 text-[10px] text-amber-500/70"><Lock size={9} /> Private</span>;
+                          if (effective === "friends") return <span className="inline-flex items-center gap-1 text-[10px] text-green-500/70"><Users size={9} /> Friends</span>;
                           return null;
                         })()}
+                        {user && c.user_id !== user.id && <ReportButton contentType="catch" contentId={c.id} />}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-slate-600">
-                        <span>{timeAgo(c.caught_at)}</span>
-                        {user && c.user_id !== user.id && (
-                          <ReportButton contentType="catch" contentId={c.id} />
+                    </div>
+
+                    {/* Species + metrics */}
+                    <div className="flex items-center justify-between gap-2">
+                      <Link href={`/catches/${c.id}`} className="font-bold text-white hover:text-blue-300 transition-colors text-lg leading-tight">
+                        {fish?.name ?? "Unknown Species"}
+                      </Link>
+                      <div className="flex items-center gap-3 shrink-0">
+                        {c.weight_lbs != null && (
+                          <span className="flex items-center gap-1 text-sm font-semibold text-slate-300">
+                            <Scale size={12} className="text-slate-500" />{c.weight_lbs} lbs
+                          </span>
+                        )}
+                        {c.length_in != null && (
+                          <span className="flex items-center gap-1 text-sm font-semibold text-slate-300">
+                            <Ruler size={12} className="text-slate-500" />{c.length_in}&quot;
+                          </span>
                         )}
                       </div>
                     </div>
+
+                    {/* Spot + bait */}
+                    {(spot || bait) && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {spot && (
+                          <Link href={`/spots/${spot.id}`} className="flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors">
+                            <MapPin size={10} />{spot.name}
+                          </Link>
+                        )}
+                        {bait && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-slate-500">
+                            {bait.name}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Notes */}
+                    {c.notes && (
+                      <p className="text-sm text-slate-400 leading-relaxed line-clamp-3">{c.notes}</p>
+                    )}
+
+                    {/* Reactions */}
+                    <CatchReactions
+                      catchId={c.id}
+                      reactions={reactionsByCatch.get(c.id) ?? EMOJIS.map((e) => ({ emoji: e, count: 0, reacted: false }))}
+                      currentUserReaction={userReactionByCatch.get(c.id) ?? null}
+                      isLoggedIn={!!user}
+                    />
                   </div>
                 </div>
               </div>

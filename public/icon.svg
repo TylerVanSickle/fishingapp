@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="#0c1a2e"/>
+
+  <!-- Glow -->
+  <circle cx="256" cy="256" r="180" fill="#1e3a5f" opacity="0.5"/>
+
+  <!-- Fishing hook body (curved line) -->
+  <path d="M 200 120
+             C 200 120 310 120 310 200
+             C 310 270 255 290 255 330
+             C 255 370 285 390 310 380"
+        fill="none" stroke="#60a5fa" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Hook point barb -->
+  <path d="M 310 380 C 335 370 340 350 320 345"
+        fill="none" stroke="#60a5fa" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Fishing line from top -->
+  <line x1="200" y1="80" x2="200" y2="120" stroke="#93c5fd" stroke-width="8" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- Small sparkle dots -->
+  <circle cx="355" cy="165" r="8" fill="#38bdf8" opacity="0.6"/>
+  <circle cx="375" cy="195" r="5" fill="#38bdf8" opacity="0.4"/>
+  <circle cx="160" cy="200" r="6" fill="#38bdf8" opacity="0.4"/>
+</svg>

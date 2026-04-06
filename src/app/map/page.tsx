@@ -33,7 +33,8 @@ export default async function MapPage() {
     .map((s) => [s.longitude, s.latitude] as [number, number]);
 
   return (
-    <div className="h-[calc(100vh-64px)] w-full">
+    // Desktop: subtract top navbar (64px). Mobile: subtract bottom nav (80px), no top navbar.
+    <div className="h-[calc(100dvh-80px)] md:h-[calc(100dvh-64px)] w-full">
       <MapView spots={spots ?? []} heatmapPoints={heatmapPoints} homeState={homeState} />
     </div>
   );

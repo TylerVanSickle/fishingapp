@@ -10,11 +10,13 @@ export async function completeOnboarding(formData: FormData) {
 
   const home_state = formData.get("home_state") as string | null;
   const speciesIds = formData.getAll("species_ids") as string[];
+  const techniques = formData.getAll("techniques") as string[];
 
   // Update profile
   await supabase.from("profiles").update({
     home_state: home_state || null,
     onboarding_complete: true,
+    ...(techniques.length > 0 ? { preferred_techniques: techniques } : {}),
   }).eq("id", user.id);
 
   // Upsert favorite species

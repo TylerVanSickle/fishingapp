@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /api/
+Disallow: /profile/edit
+Disallow: /log-catch
+Disallow: /onboarding
+
+Sitemap: https://hooklineapp.com/sitemap.xml

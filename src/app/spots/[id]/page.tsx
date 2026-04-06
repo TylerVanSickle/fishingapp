@@ -177,66 +177,70 @@ export default async function SpotPage({ params }: { params: Promise<{ id: strin
   const userVerified = user ? verifications.some((v) => v.user_id === user.id) : false;
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 py-6 pb-10">
       <Link href="/spots" className="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 mb-6 transition-colors">
         <ArrowLeft size={14} /> Back to spots
       </Link>
 
       {/* Header */}
       <div className="mb-6">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-1">
-              <h1 className="text-3xl font-bold text-white">{spot.name}</h1>
-              {latestReport && (
-                <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${ACTIVITY_BADGE[latestReport.activity_level] ?? ACTIVITY_BADGE.moderate} capitalize`}>
-                  {latestReport.activity_level === "hot" ? "🔥 Hot" : latestReport.activity_level}
+        {/* Title + meta — full width, no competing buttons */}
+        <div className="mb-4">
+          <div className="flex items-start gap-2 flex-wrap mb-2">
+            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight">{spot.name}</h1>
+            {latestReport && (
+              <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border ${ACTIVITY_BADGE[latestReport.activity_level] ?? ACTIVITY_BADGE.moderate} capitalize shrink-0 mt-1`}>
+                {latestReport.activity_level === "hot" ? "🔥 Hot" : latestReport.activity_level}
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 text-slate-500 text-sm flex-wrap">
+            <span className="inline-flex items-center gap-1.5 capitalize">
+              <Waves size={13} />{spot.water_type}
+            </span>
+            {spot.state && (
+              <>
+                <span className="text-slate-700">·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin size={13} />{spot.state}
                 </span>
-              )}
-            </div>
-            <div className="flex items-center gap-3 text-slate-500 text-sm">
-              <span className="inline-flex items-center gap-1.5 capitalize">
-                <Waves size={13} />{spot.water_type}
-              </span>
-              {spot.state && (
-                <>
-                  <span className="text-slate-700">·</span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <MapPin size={13} />{spot.state}
-                  </span>
-                </>
-              )}
-              <span className="text-slate-700">·</span>
-              <span className="text-slate-600">
-                {spot.latitude.toFixed(4)}, {spot.longitude.toFixed(4)}
-              </span>
-            </div>
-
-            {/* Rating */}
-            <div className="mt-3">
-              <SpotRating
-                spotId={id}
-                avgRating={avgRating}
-                totalRatings={ratings.length}
-                userRating={userRating}
-                canRate={!!user}
-              />
-            </div>
+              </>
+            )}
+            {/* Coords hidden on mobile — not useful at a glance */}
+            <span className="hidden sm:inline text-slate-700">·</span>
+            <span className="hidden sm:inline text-slate-600 text-xs">
+              {spot.latitude.toFixed(4)}, {spot.longitude.toFixed(4)}
+            </span>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-            {user && <SaveSpotButton spotId={id} initialSaved={isSaved} />}
-            <ShareButton title={spot.name} text={`Check out ${spot.name} on HookLine`} />
-            <ReportButton contentType="spot" contentId={id} />
-            <a
-              href={googleMapsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 text-sm transition-colors"
-            >
-              <Navigation size={12} /> Directions
-            </a>
+          <div className="mt-3">
+            <SpotRating
+              spotId={id}
+              avgRating={avgRating}
+              totalRatings={ratings.length}
+              userRating={userRating}
+              canRate={!!user}
+            />
           </div>
+        </div>
+
+        {/* Action buttons — own full-width row on mobile */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {user && <SaveSpotButton spotId={id} initialSaved={isSaved} />}
+          {user && userTrips.length > 0 && (
+            <AddToTripButton spotId={id} trips={userTrips} tripIdsWithSpot={tripIdsWithSpot} />
+          )}
+          <ShareButton title={spot.name} text={`Check out ${spot.name} on HookLine`} />
+          <ReportButton contentType="spot" contentId={id} />
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-slate-200 text-sm transition-colors"
+          >
+            <Navigation size={12} /> Directions
+          </a>
         </div>
 
         {/* Verification */}
@@ -412,7 +416,6 @@ export default async function SpotPage({ params }: { params: Promise<{ id: strin
             >
               <Fish size={15} /> Log a Catch Here
             </Link>
-            <AddToTripButton spotId={id} trips={userTrips} tripIdsWithSpot={tripIdsWithSpot} />
           </>
         ) : (
           <Link

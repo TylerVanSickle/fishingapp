@@ -139,13 +139,22 @@ export default async function ProPage() {
         </p>
       </div>
 
+      {/* Trust strip */}
+      <div className="flex items-center justify-center gap-6 mb-10 flex-wrap text-xs text-slate-500">
+        {["Cancel anytime", "Instant access", "Supports indie dev"].map((t) => (
+          <span key={t} className="flex items-center gap-1.5">
+            <Check size={11} className="text-green-400" /> {t}
+          </span>
+        ))}
+      </div>
+
       {/* Pricing cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-14 max-w-2xl mx-auto">
         {/* Monthly */}
-        <div className="p-6 rounded-2xl border border-white/10 bg-white/3 flex flex-col">
+        <div className="p-6 rounded-2xl border border-white/10 bg-white/2 flex flex-col">
           <div className="text-slate-400 text-sm font-medium mb-2">Monthly</div>
           <div className="flex items-end gap-1 mb-1">
-            <span className="text-4xl font-black text-white">$15</span>
+            <span className="text-4xl font-black text-white">$9.99</span>
             <span className="text-slate-500 text-sm mb-1.5">/month</span>
           </div>
           <p className="text-xs text-slate-600 mb-6">Cancel anytime</p>
@@ -160,7 +169,7 @@ export default async function ProPage() {
             </div>
           ) : user ? (
             <div className="mt-auto">
-              <CheckoutButton plan="monthly" label="Get Pro — $15/mo" />
+              <CheckoutButton plan="monthly" label="Get Pro — $9.99/mo" />
             </div>
           ) : (
             <a href="/login?redirectTo=/pro" className="mt-auto block text-center py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors">
@@ -169,19 +178,19 @@ export default async function ProPage() {
           )}
         </div>
 
-        {/* Annual */}
-        <div className="p-6 rounded-2xl border border-amber-500/30 bg-amber-500/5 flex flex-col relative overflow-hidden">
+        {/* Annual — recommended */}
+        <div className="p-6 rounded-2xl border border-amber-500/40 bg-amber-500/5 flex flex-col relative overflow-hidden ring-1 ring-amber-500/20">
           <div className="absolute top-3 right-3">
             <span className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold tracking-wide">
-              SAVE 17%
+              BEST VALUE
             </span>
           </div>
-          <div className="text-amber-400 text-sm font-medium mb-2">Annual</div>
+          <div className="text-amber-400 text-sm font-bold mb-2">Annual ✦ Recommended</div>
           <div className="flex items-end gap-1 mb-1">
-            <span className="text-4xl font-black text-white">$150</span>
+            <span className="text-4xl font-black text-white">$79.99</span>
             <span className="text-slate-500 text-sm mb-1.5">/year</span>
           </div>
-          <p className="text-xs text-slate-600 mb-6">$12.50/month · billed annually</p>
+          <p className="text-xs text-slate-600 mb-6">$6.67/month · billed annually</p>
           {isPro ? (
             <div className="mt-auto flex flex-col gap-2">
               <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-500/10 border border-green-500/20 text-green-400 text-sm font-medium">
@@ -193,7 +202,7 @@ export default async function ProPage() {
             </div>
           ) : user ? (
             <div className="mt-auto">
-              <CheckoutButton plan="annual" label="Get Pro — $150/yr" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2" />
+              <CheckoutButton plan="annual" label="Get Pro — $79.99/yr" className="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2" />
             </div>
           ) : (
             <a href="/login?redirectTo=/pro" className="mt-auto block text-center py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-sm transition-colors">
@@ -269,15 +278,14 @@ export default async function ProPage() {
         </div>
       )}
 
-      {/* Teaser for non-pro logged-in */}
+      {/* Try before you buy nudge */}
       {user && !isPro && (
-        <div className="mt-10 p-5 rounded-2xl border border-amber-500/15 bg-amber-500/5 flex items-center gap-4">
-          <Lock size={20} className="text-amber-400 shrink-0" />
+        <div className="mt-10 p-5 rounded-2xl border border-blue-500/15 bg-blue-500/5 flex items-start gap-4">
+          <Sparkles size={20} className="text-blue-400 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-sm font-medium text-white mb-0.5">Pro features are locked</p>
-            <p className="text-xs text-slate-500">Payments are coming soon. In the meantime, <Link href="/pro/where-to-fish" className="text-amber-400 hover:text-amber-300 underline">preview Where to Fish</Link> for free.</p>
+            <p className="text-sm font-medium text-white mb-0.5">Try Where to Fish free</p>
+            <p className="text-xs text-slate-500">Not ready to subscribe? <Link href="/pro/where-to-fish" className="text-blue-400 hover:text-blue-300 underline">Preview Where to Fish</Link> with no commitment — see exactly what Pro unlocks.</p>
           </div>
-          <ProBadge />
         </div>
       )}
     </div>

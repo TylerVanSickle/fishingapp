@@ -4,6 +4,7 @@ import { useTransition } from "react";
 import { UserPlus, UserCheck } from "lucide-react";
 import { toggleFollow } from "@/lib/actions/social";
 import { useToast } from "@/components/ui/Toaster";
+import { hapticSuccess, hapticLight } from "@/lib/native";
 
 interface Props {
   targetUserId: string;
@@ -19,6 +20,7 @@ export default function FollowButton({ targetUserId, isFollowing, compact = fals
     startTransition(async () => {
       try {
         await toggleFollow(targetUserId, isFollowing);
+        isFollowing ? await hapticLight() : await hapticSuccess();
         toast(isFollowing ? "Unfollowed" : "Now following!", isFollowing ? "info" : "success");
       } catch {
         toast("Something went wrong", "error");
