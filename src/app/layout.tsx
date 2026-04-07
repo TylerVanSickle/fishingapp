@@ -3,6 +3,8 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 import ServiceWorkerInit from "@/components/ServiceWorkerInit";
+import TopLoader from "@/components/TopLoader";
+import PageTransition from "@/components/PageTransition";
 import { ToastProvider } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/server";
 import { Analytics } from "@vercel/analytics/next";
@@ -75,10 +77,34 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body className="min-h-screen">
+        {/* PWA splash screen — dismissed by script below */}
+        <div id="pwa-splash">
+          <div className="logo-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6" />
+              <path d="M6.5 12c-.94 3.46.44 8 4 8 3.56 0 8.06-4.54 9-8" />
+              <path d="M2 10l2 2-2 2" />
+            </svg>
+          </div>
+          <div className="logo-text">Hook<span>Line</span></div>
+          <div className="splash-dots"><div /><div /><div /></div>
+        </div>
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.addEventListener('load', function() {
+            var s = document.getElementById('pwa-splash');
+            if (s) {
+              setTimeout(function() { s.classList.add('hide'); }, 600);
+              setTimeout(function() { s.remove(); }, 1100);
+            }
+          });
+        `}} />
         <ToastProvider>
+          <TopLoader />
           <ServiceWorkerInit />
           <Navbar />
-          <main className="pb-20 md:pb-0">{children}</main>
+          <main className="pb-20 md:pb-0">
+            <PageTransition>{children}</PageTransition>
+          </main>
           <MobileNav user={user} unreadCount={unreadCount} isPro={isPro} />
         </ToastProvider>
         <Analytics />
