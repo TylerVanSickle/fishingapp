@@ -83,9 +83,9 @@ export default function MobileNav({
             <Fish size={22} strokeWidth={pathname === "/" ? 2.5 : 1.75} />
             <span className="text-[10px] font-medium">Home</span>
           </Link>
-          <Link href="/map" className={navClass("/map")}>
-            <Map size={22} strokeWidth={pathname === "/map" ? 2.5 : 1.75} />
-            <span className="text-[10px] font-medium">Map</span>
+          <Link href="/pro" className={navClass("/pro")}>
+            <Sparkles size={22} strokeWidth={pathname === "/pro" ? 2.5 : 1.75} />
+            <span className="text-[10px] font-medium text-amber-400">Pro</span>
           </Link>
           <Link href="/login" className={navClass("/login")}>
             <User size={22} strokeWidth={pathname === "/login" ? 2.5 : 1.75} />
