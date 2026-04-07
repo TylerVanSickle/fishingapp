@@ -121,15 +121,15 @@ export default function MobileNav({
             <span className="text-[10px] font-medium text-slate-500 mt-0.5">Log</span>
           </Link>
 
-          {/* Profile with notification badge */}
-          <Link href="/profile" className={`relative ${navClass("/profile")}`}>
-            <User size={22} strokeWidth={pathname === "/profile" ? 2.5 : 1.75} />
+          {/* Notifications */}
+          <Link href="/notifications" className={`relative ${navClass("/notifications")}`}>
+            <Bell size={22} strokeWidth={pathname === "/notifications" ? 2.5 : 1.75} />
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1.5 w-4 h-4 flex items-center justify-center text-[9px] font-bold bg-blue-600 text-white rounded-full">
                 {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
-            <span className="text-[10px] font-medium">Profile</span>
+            <span className="text-[10px] font-medium">Alerts</span>
           </Link>
 
           {/* More */}
@@ -228,29 +228,28 @@ export default function MobileNav({
             );
           })}
 
-          {/* Notifications link */}
+          {/* Account */}
           <div>
             <p className="text-[10px] uppercase tracking-widest text-slate-600 font-semibold mb-2 px-1">Account</p>
             <div className="grid grid-cols-2 gap-2">
               <Link
-                href="/notifications"
+                href="/profile"
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
-                  pathname === "/notifications"
+                  pathname === "/profile"
                     ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
                     : "bg-white/3 border-white/8 text-slate-300"
                 }`}
               >
-                <Bell size={16} />
-                <span className="text-sm font-medium">Alerts</span>
-                {unreadCount > 0 && (
-                  <span className="ml-auto text-[10px] font-bold bg-blue-600 text-white rounded-full px-1.5 py-0.5">
-                    {unreadCount > 9 ? "9+" : unreadCount}
-                  </span>
-                )}
+                <User size={16} />
+                <span className="text-sm font-medium">Profile</span>
               </Link>
               <Link
                 href="/profile/edit"
-                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-white/8 bg-white/3 text-slate-300"
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors ${
+                  pathname === "/profile/edit"
+                    ? "bg-blue-500/15 border-blue-500/30 text-blue-300"
+                    : "bg-white/3 border-white/8 text-slate-300"
+                }`}
               >
                 <User size={16} />
                 <span className="text-sm font-medium">Edit Profile</span>
