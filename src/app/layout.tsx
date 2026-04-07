@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
-import ServiceWorkerInit from "@/components/ServiceWorkerInit";
 import TopLoader from "@/components/TopLoader";
 import { ToastProvider } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/server";
@@ -106,7 +105,6 @@ export default async function RootLayout({
         `}} />
         <ToastProvider>
           <TopLoader />
-          <ServiceWorkerInit />
           <Navbar />
           <main className="pb-20 md:pb-0">{children}</main>
           <MobileNav user={user} unreadCount={unreadCount} isPro={isPro} />

@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 export default function TopLoader() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setLoading(false);
-  }, [pathname, searchParams]);
+  }, [pathname]);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -18,8 +17,7 @@ export default function TopLoader() {
       if (!anchor) return;
       const href = anchor.getAttribute("href");
       if (!href || href.startsWith("http") || href.startsWith("#") || href.startsWith("mailto")) return;
-      // Don't show loader for same-page links
-      if (href === pathname) return;
+      if (href === pathname || href === window.location.pathname) return;
       setLoading(true);
     }
     document.addEventListener("click", handleClick);
