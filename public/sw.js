@@ -1,6 +1,11 @@
-// Let all navigation and fetch requests pass through to the network
-self.addEventListener("fetch", (event) => {
-  event.respondWith(fetch(event.request));
+const SW_VERSION = 2;
+// Navigation/fetch: do nothing — let the browser handle it natively
+// Only handle push notifications
+
+// Force activate new SW immediately, replacing old broken one
+self.addEventListener("install", () => self.skipWaiting());
+self.addEventListener("activate", (event) => {
+  event.waitUntil(self.clients.claim());
 });
 
 self.addEventListener("push", (event) => {
