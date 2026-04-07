@@ -4,7 +4,6 @@ import Navbar from "@/components/Navbar";
 import MobileNav from "@/components/MobileNav";
 import ServiceWorkerInit from "@/components/ServiceWorkerInit";
 import TopLoader from "@/components/TopLoader";
-import PageTransition from "@/components/PageTransition";
 import { ToastProvider } from "@/components/ui/Toaster";
 import { createClient } from "@/lib/supabase/server";
 import { Analytics } from "@vercel/analytics/next";
@@ -79,11 +78,18 @@ export default async function RootLayout({
       <body className="min-h-screen">
         {/* PWA splash screen — dismissed by script below */}
         <div id="pwa-splash">
-          <div className="logo-icon">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6" />
-              <path d="M6.5 12c-.94 3.46.44 8 4 8 3.56 0 8.06-4.54 9-8" />
-              <path d="M2 10l2 2-2 2" />
+          <div className="splash-hook">
+            <svg viewBox="0 0 512 512" width="80" height="80">
+              <rect width="512" height="512" rx="112" fill="#0c1a2e"/>
+              <circle cx="256" cy="256" r="180" fill="#1e3a5f" opacity="0.5"/>
+              <path d="M 200 120 C 200 120 310 120 310 200 C 310 270 255 290 255 330 C 255 370 285 390 310 380"
+                    fill="none" stroke="#60a5fa" strokeWidth="22" strokeLinecap="round" className="splash-hook-path"/>
+              <path d="M 310 380 C 335 370 340 350 320 345"
+                    fill="none" stroke="#60a5fa" strokeWidth="18" strokeLinecap="round" className="splash-hook-path"/>
+              <line x1="200" y1="80" x2="200" y2="120" stroke="#93c5fd" strokeWidth="8" strokeLinecap="round" opacity="0.7" className="splash-line"/>
+              <circle cx="355" cy="165" r="8" fill="#38bdf8" opacity="0.6"/>
+              <circle cx="375" cy="195" r="5" fill="#38bdf8" opacity="0.4"/>
+              <circle cx="160" cy="200" r="6" fill="#38bdf8" opacity="0.4"/>
             </svg>
           </div>
           <div className="logo-text">Hook<span>Line</span></div>
@@ -102,9 +108,7 @@ export default async function RootLayout({
           <TopLoader />
           <ServiceWorkerInit />
           <Navbar />
-          <main className="pb-20 md:pb-0">
-            <PageTransition>{children}</PageTransition>
-          </main>
+          <main className="pb-20 md:pb-0">{children}</main>
           <MobileNav user={user} unreadCount={unreadCount} isPro={isPro} />
         </ToastProvider>
         <Analytics />

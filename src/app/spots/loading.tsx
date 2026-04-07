@@ -1,15 +1,10 @@
 import { SkeletonSpotCard, Skeleton } from "@/components/ui/Skeleton";
+import HookSpinner from "@/components/ui/HookSpinner";
 
 export default function SpotsLoading() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-32" />
-          <Skeleton className="h-4 w-48" />
-        </div>
-        <Skeleton className="h-9 w-36 rounded-full" />
-      </div>
+      <HookSpinner size={44} className="mb-8" />
       <div className="flex gap-2 mb-6 overflow-x-auto pb-1">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-8 w-20 shrink-0 rounded-full" />
