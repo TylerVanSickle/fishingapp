@@ -27,5 +27,5 @@ export async function completeOnboarding(formData: FormData) {
     );
   }
 
-  redirect("/map");
+  redirect("/welcome");
 }
