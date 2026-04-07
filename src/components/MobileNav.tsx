@@ -5,9 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Map, Users, Bell, User, Plus, Grid3x3, X,
   Compass, Trophy, Fish, Waves, CloudSun,
-  BookOpen, Package, Route, FileText, Star, MapPin, Sparkles, MessageSquare,
+  BookOpen, Package, Route, FileText, Star, MapPin, Sparkles, MessageSquare, LogOut,
 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 const MORE_SECTIONS = [
@@ -58,6 +59,14 @@ export default function MobileNav({
   const pathname = usePathname();
   const router = useRouter();
   const [sheetOpen, setSheetOpen] = useState(false);
+  const supabase = createClient();
+
+  async function handleSignOut() {
+    await supabase.auth.signOut();
+    setSheetOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   // Close sheet on navigation
   useEffect(() => { setSheetOpen(false); }, [pathname]);
@@ -274,6 +283,13 @@ export default function MobileNav({
                   <span className="text-sm font-medium">Manage Pro</span>
                 </Link>
               )}
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-500/15 bg-red-500/5 text-red-400 col-span-2"
+              >
+                <LogOut size={16} />
+                <span className="text-sm font-medium">Sign out</span>
+              </button>
             </div>
           </div>
         </div>
