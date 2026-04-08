@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Fish, MapPin, Scale, Ruler, ArrowLeft } from "lucide-react";
 import FollowButton from "@/components/FollowButton";
+import BlockButton from "@/components/BlockButton";
 import Avatar from "@/components/Avatar";
 import ShareButton from "@/components/ShareButton";
 import ClickablePhoto from "@/components/ClickablePhoto";
@@ -71,7 +72,7 @@ export default async function AnglerProfilePage({
   if (!profile) notFound();
 
   // Follow counts + is-following check + mutual follow check
-  const [{ count: followerCount }, { count: followingCount }, followRow, followBackRow] = await Promise.all([
+  const [{ count: followerCount }, { count: followingCount }, followRow, followBackRow, blockRow] = await Promise.all([
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("following_id", id),
     supabase.from("follows").select("*", { count: "exact", head: true }).eq("follower_id", id),
     currentUser
@@ -80,10 +81,14 @@ export default async function AnglerProfilePage({
     currentUser
       ? supabase.from("follows").select("follower_id").eq("follower_id", id).eq("following_id", currentUser.id).maybeSingle()
       : Promise.resolve({ data: null }),
+    currentUser
+      ? supabase.from("user_blocks").select("id").eq("blocker_id", currentUser.id).eq("blocked_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
   const isFollowing = !!(followRow as { data: unknown }).data;
   const isOwnProfile = currentUser?.id === id;
+  const isBlocked = !!(blockRow as { data: unknown }).data;
   const isMutualFollow = isFollowing && !!(followBackRow as { data: unknown }).data;
 
   // Filter catches by visibility
@@ -127,6 +132,7 @@ export default async function AnglerProfilePage({
             )}
             <ShareButton title={`@${profile.username} on HookLine`} text={`Check out @${profile.username}'s catches on HookLine`} />
             {!isOwnProfile && <ReportButton contentType="profile" contentId={id} />}
+            {!isOwnProfile && currentUser && <BlockButton targetUserId={id} isBlocked={isBlocked} />}
           </div>
           {profile.home_state && (
             <p className="flex items-center gap-1 text-sm text-slate-500 mb-1">

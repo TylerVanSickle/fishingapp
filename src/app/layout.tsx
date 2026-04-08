@@ -67,10 +67,17 @@ export default async function RootLayout({
   if (user) {
     const [{ count }, { data: profile }] = await Promise.all([
       supabase.from("notifications").select("*", { count: "exact", head: true }).eq("user_id", user.id).eq("read", false),
-      supabase.from("profiles").select("is_pro").eq("id", user.id).single(),
+      supabase.from("profiles").select("is_pro, is_banned, is_suspended, suspended_until").eq("id", user.id).single(),
     ]);
     unreadCount = count ?? 0;
-    isPro = !!(profile as unknown as { is_pro?: boolean } | null)?.is_pro;
+    const p = profile as unknown as { is_pro?: boolean; is_banned?: boolean; is_suspended?: boolean; suspended_until?: string } | null;
+    isPro = !!p?.is_pro;
+    // Redirect banned/suspended users
+    const isBannedOrSuspended = p?.is_banned || (p?.is_suspended && p?.suspended_until && new Date(p.suspended_until) > new Date());
+    if (isBannedOrSuspended) {
+      const { redirect } = await import("next/navigation");
+      redirect("/banned");
+    }
   }
 
   return (

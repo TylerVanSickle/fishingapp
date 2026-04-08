@@ -5,6 +5,40 @@ import { revalidatePath } from "next/cache";
 import { filterCheck } from "@/lib/contentFilter";
 import { sendPushToUser } from "@/lib/push";
 
+// ─── Block / Unblock ─────────────────────────────────────────────────────────
+
+export async function blockUser(targetUserId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Must be logged in");
+  if (user.id === targetUserId) throw new Error("Cannot block yourself");
+
+  // Block the user
+  await supabase.from("user_blocks").upsert(
+    { blocker_id: user.id, blocked_id: targetUserId },
+    { onConflict: "blocker_id,blocked_id" }
+  );
+
+  // Also unfollow in both directions
+  await supabase.from("follows").delete().eq("follower_id", user.id).eq("following_id", targetUserId);
+  await supabase.from("follows").delete().eq("follower_id", targetUserId).eq("following_id", user.id);
+
+  revalidatePath(`/anglers/${targetUserId}`);
+  revalidatePath("/feed");
+}
+
+export async function unblockUser(targetUserId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Must be logged in");
+
+  await supabase.from("user_blocks").delete()
+    .eq("blocker_id", user.id)
+    .eq("blocked_id", targetUserId);
+
+  revalidatePath(`/anglers/${targetUserId}`);
+}
+
 // ─── Follow ──────────────────────────────────────────────────────────────────
 
 export async function toggleFollow(targetUserId: string, currentlyFollowing: boolean) {

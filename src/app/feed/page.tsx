@@ -50,18 +50,20 @@ export default async function FeedPage({
   const feedSolunarScore = computeFishingScore(-98.5);
   const feedSolunarLabel = scoreLabel(feedSolunarScore);
 
-  // Get follow relationships for the current user
+  // Get follow relationships + blocked users
   let followingIds: string[] = [];
   let mutualFollowIds: Set<string> = new Set();
+  let blockedIds: Set<string> = new Set();
   if (user) {
-    const [{ data: following }, { data: followers }] = await Promise.all([
+    const [{ data: following }, { data: followers }, { data: blocks }] = await Promise.all([
       supabase.from("follows").select("following_id").eq("follower_id", user.id),
       supabase.from("follows").select("follower_id").eq("following_id", user.id),
+      supabase.from("user_blocks").select("blocked_id").eq("blocker_id", user.id),
     ]);
     followingIds = (following ?? []).map((f) => f.following_id);
     const followerIds = new Set((followers ?? []).map((f) => f.follower_id));
-    // Mutual follows = people I follow who also follow me back
     mutualFollowIds = new Set(followingIds.filter((id) => followerIds.has(id)));
+    blockedIds = new Set((blocks ?? []).map((b) => b.blocked_id));
   }
 
   let query = supabase
@@ -81,9 +83,11 @@ export default async function FeedPage({
 
   const { data: rawCatches } = await query;
 
-  // Filter by visibility
+  // Filter by visibility + blocked users
   const catches = (rawCatches ?? [])
     .filter((c) => {
+      // Hide blocked users
+      if (blockedIds.has(c.user_id)) return false;
       const vis = (c as Record<string, unknown>).visibility as string | undefined;
       const isPrivate = (c as Record<string, unknown>).is_private;
       // Own catches: always show
