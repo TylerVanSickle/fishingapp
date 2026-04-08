@@ -222,18 +222,32 @@ export default function LogCatchPage() {
             <div>
               <label className={labelClass}>Weight (lbs)</label>
               <input
-                type="number" step="0.1" min="0"
-                value={weightLbs} onChange={(e) => setWeightLbs(e.target.value)}
+                type="number" step="0.1" min="0" max="1500"
+                value={weightLbs}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (e.target.value === "" || (v >= 0 && v <= 1500)) setWeightLbs(e.target.value);
+                }}
                 placeholder="2.5" className={inputClass}
               />
+              {parseFloat(weightLbs) > 200 && (
+                <p className="text-[10px] text-amber-500 mt-1">Are you sure? That&apos;s a monster!</p>
+              )}
             </div>
             <div>
               <label className={labelClass}>Length (in)</label>
               <input
-                type="number" step="0.5" min="0"
-                value={lengthIn} onChange={(e) => setLengthIn(e.target.value)}
+                type="number" step="0.5" min="0" max="240"
+                value={lengthIn}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (e.target.value === "" || (v >= 0 && v <= 240)) setLengthIn(e.target.value);
+                }}
                 placeholder='14"' className={inputClass}
               />
+              {parseFloat(lengthIn) > 72 && (
+                <p className="text-[10px] text-amber-500 mt-1">Over 6 feet — double check!</p>
+              )}
             </div>
           </div>
 

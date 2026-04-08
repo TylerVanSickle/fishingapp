@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import { Select } from "@/components/ui/Select";
 import { MapPin, Camera, X } from "lucide-react";
 import { submitSpot } from "@/lib/actions/spots";
@@ -12,15 +13,16 @@ const inputClass =
 
 const labelClass = "block text-sm text-slate-400 mb-1.5";
 
-export default function SubmitSpotPage() {
+function SubmitSpotForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
 
-  const [name, setName] = useState("");
+  const [name, setName] = useState(searchParams.get("name") ?? "");
   const [waterType, setWaterType] = useState("lake");
   const [state, setState] = useState("");
   const [description, setDescription] = useState("");
-  const [latitude, setLatitude] = useState("");
-  const [longitude, setLongitude] = useState("");
+  const [latitude, setLatitude] = useState(searchParams.get("lat") ?? "");
+  const [longitude, setLongitude] = useState(searchParams.get("lng") ?? "");
   const [accessNotes, setAccessNotes] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
@@ -142,7 +144,7 @@ export default function SubmitSpotPage() {
         <div className="p-5 rounded-2xl border border-white/8 bg-white/2 flex flex-col gap-4">
           <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Coordinates</h2>
           <p className="text-xs text-slate-600 -mt-2">
-            Find coordinates on Google Maps: right-click any location → copy lat/lng
+            {latitude && longitude ? "Auto-filled from map — adjust if needed" : "Find coordinates on Google Maps: right-click any location → copy lat/lng"}
           </p>
 
           <div className="grid grid-cols-2 gap-3">
@@ -244,5 +246,13 @@ export default function SubmitSpotPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function SubmitSpotPage() {
+  return (
+    <Suspense>
+      <SubmitSpotForm />
+    </Suspense>
   );
 }

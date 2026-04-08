@@ -707,7 +707,7 @@ export default function MapView({ spots, heatmapPoints = [], homeState = null }:
                 <MapPin size={28} className="mx-auto mb-3 text-slate-700" />
                 <p className="text-sm text-slate-500">No spots logged near here yet</p>
                 <Link
-                  href="/submit-spot"
+                  href={`/submit-spot?lat=${waterBody.lat}&lng=${waterBody.lng}&name=${encodeURIComponent(waterBody.name)}`}
                   className="mt-3 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
                 >
                   Add the first spot →

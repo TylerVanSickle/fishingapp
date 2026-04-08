@@ -74,7 +74,7 @@ export default function ProGate({
           {/* Pricing callout */}
           <div className="flex items-stretch gap-3 mb-6">
             <div className="flex-1 p-4 rounded-2xl border border-white/8 bg-white/3 text-center">
-              <div className="text-2xl font-black text-white">$15</div>
+              <div className="text-2xl font-black text-white">$9.99</div>
               <div className="text-xs text-slate-500 mt-0.5">per month</div>
               <div className="text-[10px] text-slate-600 mt-1">Cancel anytime</div>
             </div>
@@ -82,12 +82,12 @@ export default function ProGate({
             <div className="flex-1 p-4 rounded-2xl border border-amber-500/25 bg-amber-500/5 text-center relative overflow-hidden">
               <div className="absolute top-2 right-2">
                 <span className="px-1.5 py-0.5 rounded bg-amber-500/25 text-amber-400 text-[9px] font-bold tracking-wide">
-                  SAVE 17%
+                  SAVE 33%
                 </span>
               </div>
-              <div className="text-2xl font-black text-white">$150</div>
+              <div className="text-2xl font-black text-white">$79.99</div>
               <div className="text-xs text-amber-500/80 mt-0.5">per year</div>
-              <div className="text-[10px] text-slate-600 mt-1">$12.50/mo billed annually</div>
+              <div className="text-[10px] text-slate-600 mt-1">$6.67/mo billed annually</div>
             </div>
           </div>
 
