@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 async function assertAdmin() {
@@ -97,10 +97,12 @@ export async function warnUser(userId: string, reason: string) {
 
 export async function deleteUserContent(userId: string) {
   const { supabase, adminId } = await assertAdmin();
+  // Use service role to bypass RLS for admin content deletion
+  const admin = createServiceClient();
   await Promise.all([
-    supabase.from("catches").delete().eq("user_id", userId),
-    supabase.from("catch_comments").delete().eq("user_id", userId),
-    supabase.from("spot_comments").delete().eq("user_id", userId),
+    admin.from("catches").delete().eq("user_id", userId),
+    admin.from("catch_comments").delete().eq("user_id", userId),
+    admin.from("spot_comments").delete().eq("user_id", userId),
   ]);
   await logAction(supabase, adminId, userId, "delete_content");
   revalidatePath("/admin/users");

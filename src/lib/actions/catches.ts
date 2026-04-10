@@ -1,6 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createServiceClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 const MAX_WEIGHT_LBS = 1500;
@@ -77,11 +77,13 @@ async function assertAdmin() {
 }
 
 export async function adminDeleteCatch(catchId: string) {
-  const supabase = await assertAdmin();
-  // Delete related comments and reactions first to avoid FK constraints
-  await supabase.from("catch_reactions").delete().eq("catch_id", catchId);
-  await supabase.from("catch_comments").delete().eq("catch_id", catchId);
-  const { error } = await supabase.from("catches").delete().eq("id", catchId);
+  // Verify caller is admin using their session
+  await assertAdmin();
+  // Use service role client to bypass RLS for admin operations
+  const admin = createServiceClient();
+  await admin.from("catch_reactions").delete().eq("catch_id", catchId);
+  await admin.from("catch_comments").delete().eq("catch_id", catchId);
+  const { error } = await admin.from("catches").delete().eq("id", catchId);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/catches");
   revalidatePath("/feed");

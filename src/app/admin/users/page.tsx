@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { ShieldCheck, User, Search, Ban, Clock, AlertTriangle, Trash2 } from "lucide-react";
+import { ShieldCheck, User, Search, Ban, Clock, AlertTriangle } from "lucide-react";
 import {
   toggleUserAdmin, banUser, unbanUser,
-  suspendUser, unsuspendUser, warnUser, deleteUserContent,
+  suspendUser, unsuspendUser, warnUser,
 } from "@/lib/actions/admin";
+import AdminDeleteContentButton from "@/components/AdminDeleteContentButton";
 import Link from "next/link";
 
 export default async function AdminUsersPage({
@@ -217,11 +218,7 @@ export default async function AdminUsersPage({
                   </form>
 
                   {/* Delete all content */}
-                  <form action={deleteUserContent.bind(null, u.id)}>
-                    <button type="submit" className="text-xs px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors flex items-center gap-1">
-                      <Trash2 size={11} /> Delete content
-                    </button>
-                  </form>
+                  <AdminDeleteContentButton userId={u.id} username={u.username} />
                 </div>
               )}
               {u.id === me?.id && <span className="text-xs text-slate-700 mt-2 block ml-13">(you)</span>}

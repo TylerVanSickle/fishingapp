@@ -81,9 +81,10 @@ export default function ContactForm() {
         <select
           name="category"
           required
+          defaultValue=""
           className="w-full px-3.5 py-2.5 rounded-xl bg-white/4 border border-white/10 text-slate-200 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-colors appearance-none"
         >
-          <option value="" disabled selected className="bg-slate-900">Select a topic...</option>
+          <option value="" disabled className="bg-slate-900">Select a topic...</option>
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value} className="bg-slate-900">{c.label}</option>
           ))}

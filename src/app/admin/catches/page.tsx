@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { Trash2, Search } from "lucide-react";
-import { adminDeleteCatch } from "@/lib/actions/catches";
+import { Search } from "lucide-react";
+import AdminDeleteCatchButton from "@/components/AdminDeleteCatchButton";
 import Link from "next/link";
 
 export default async function AdminCatchesPage({
@@ -125,11 +125,10 @@ export default async function AdminCatchesPage({
                 </div>
                 {c.notes && <p className="text-xs text-slate-600 mt-1 line-clamp-1">{c.notes}</p>}
               </div>
-              <form action={adminDeleteCatch.bind(null, c.id)}>
-                <button type="submit" className="p-2 rounded-lg text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-colors" title="Delete catch">
-                  <Trash2 size={14} />
-                </button>
-              </form>
+              <AdminDeleteCatchButton
+                catchId={c.id}
+                label={`${fish?.name ?? "Unknown"} by @${profile?.username ?? "?"}`}
+              />
             </div>
           );
         })}
