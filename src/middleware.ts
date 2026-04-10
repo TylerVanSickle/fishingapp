@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     pathname === "/" ||
     pathname === "/map" ||
+    pathname === "/explore" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup") ||
     pathname.startsWith("/auth/") ||
@@ -36,7 +37,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/privacy") ||
     pathname.startsWith("/terms") ||
     pathname === "/pro" ||
-    pathname === "/banned";
+    pathname === "/banned" ||
+    pathname === "/manifest.webmanifest";
 
   if (!isPublic && !user) {
     const url = request.nextUrl.clone();

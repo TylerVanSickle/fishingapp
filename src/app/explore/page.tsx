@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Compass, TrendingUp, Fish, MapPin, Scale, Waves, Star, Users, Trophy } from "lucide-react";
+import { Compass, TrendingUp, Fish, MapPin, Scale, Waves, Star, Users, Trophy, BookOpen } from "lucide-react";
 import Avatar from "@/components/Avatar";
-import ClickablePhoto from "@/components/ClickablePhoto";
 
 function timeAgo(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
@@ -10,7 +9,9 @@ function timeAgo(dateStr: string) {
   if (hours < 1) return "Just now";
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(diff / 86400000);
-  return `${days}d ago`;
+  if (days < 30) return `${days}d ago`;
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
 }
 
 export default async function ExplorePage() {
@@ -18,47 +19,69 @@ export default async function ExplorePage() {
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
 
+  // Check if there's any data this week
+  const { count: weekCount } = await supabase.from("catches")
+    .select("*", { count: "exact", head: true })
+    .gte("caught_at", weekAgo);
+
+  const hasWeekData = (weekCount ?? 0) > 0;
+  const timeLabel = hasWeekData ? "This Week" : "All Time";
+
+  // Build queries — use weekly filter if data exists, otherwise all-time
+  let recentQuery = supabase.from("catches")
+    .select("id, caught_at, weight_lbs, length_in, photo_url, notes, is_private, fish_species(name), spots(id, name), profiles!user_id(id, username, avatar_url)")
+    .not("photo_url", "is", null)
+    .order("caught_at", { ascending: false })
+    .limit(20);
+  if (hasWeekData) recentQuery = recentQuery.gte("caught_at", weekAgo);
+
+  let trendingQuery = supabase.from("catches")
+    .select("spot_id, spots(id, name, water_type, state)")
+    .not("spot_id", "is", null);
+  if (hasWeekData) trendingQuery = trendingQuery.gte("caught_at", weekAgo);
+
+  let bigQuery = supabase.from("catches")
+    .select("id, weight_lbs, length_in, caught_at, is_private, fish_species(name), spots(id, name), profiles!user_id(id, username, avatar_url)")
+    .not("weight_lbs", "is", null)
+    .order("weight_lbs", { ascending: false })
+    .limit(20);
+  if (hasWeekData) bigQuery = bigQuery.gte("caught_at", weekAgo);
+
+  let anglerQuery = supabase.from("catches")
+    .select("user_id, profiles!user_id(id, username, avatar_url)");
+  if (hasWeekData) anglerQuery = anglerQuery.gte("caught_at", weekAgo);
+
   const [
     { data: recentCatches },
     { data: trendingRaw },
     { data: bigCatches },
     { data: activeAnglers },
     { data: catchOfDayRaw },
+    { data: popularSpecies },
+    { data: topSpots },
   ] = await Promise.all([
-    // Latest catches (last 7 days with photos) — filter private in JS
-    supabase.from("catches")
-      .select("id, caught_at, weight_lbs, length_in, photo_url, notes, is_private, fish_species(name), spots(id, name), profiles!user_id(id, username, avatar_url)")
-      .gte("caught_at", weekAgo)
-      .not("photo_url", "is", null)
-      .order("caught_at", { ascending: false })
-      .limit(20),
-
-    // Trending spots: most catches this week (no privacy concern — just spot counts)
-    supabase.from("catches")
-      .select("spot_id, spots(id, name, water_type, state)")
-      .gte("caught_at", weekAgo)
-      .not("spot_id", "is", null),
-
-    // Biggest fish this week — filter private in JS
-    supabase.from("catches")
-      .select("id, weight_lbs, length_in, caught_at, is_private, fish_species(name), spots(id, name), profiles!user_id(id, username, avatar_url)")
-      .gte("caught_at", weekAgo)
-      .not("weight_lbs", "is", null)
-      .order("weight_lbs", { ascending: false })
-      .limit(20),
-
-    // Most active anglers this week
-    supabase.from("catches")
-      .select("user_id, profiles!user_id(id, username, avatar_url)")
-      .gte("caught_at", weekAgo),
-
-    // Catch of the day — heaviest public catch today
+    recentQuery,
+    trendingQuery,
+    bigQuery,
+    anglerQuery,
+    // Catch of the day — always today only
     supabase.from("catches")
       .select("id, caught_at, weight_lbs, length_in, photo_url, is_private, fish_species(name), spots(id, name), profiles!user_id(id, username, avatar_url)")
       .gte("caught_at", todayStart.toISOString())
       .not("weight_lbs", "is", null)
       .order("weight_lbs", { ascending: false })
       .limit(10),
+    // Popular species — always all-time
+    supabase.from("fish_species")
+      .select("id, name, image_url")
+      .order("name")
+      .limit(12),
+    // Top spots — always show approved spots
+    supabase.from("spots")
+      .select("id, name, water_type, state")
+      .eq("approved", true)
+      .order("created_at", { ascending: false })
+      .limit(5),
   ]);
 
   // Only show fully public catches on explore page
@@ -104,7 +127,9 @@ export default async function ExplorePage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-white">Explore</h1>
-          <p className="text-slate-500 text-xs">What&apos;s happening this week</p>
+          <p className="text-slate-500 text-xs">
+            {hasWeekData ? "What's happening this week" : "Discover the HookLine community"}
+          </p>
         </div>
       </div>
 
@@ -150,15 +175,14 @@ export default async function ExplorePage() {
         <div className="lg:col-span-2 space-y-6">
 
           {/* Recent photos */}
-          {publicRecentCatches.length > 0 && (
+          {publicRecentCatches.length > 0 ? (
             <div>
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                <TrendingUp size={13} className="text-blue-400" /> Fresh Catches This Week
+                <TrendingUp size={13} className="text-blue-400" /> Fresh Catches — {timeLabel}
               </h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {publicRecentCatches.map((c) => {
                   const fish = c.fish_species as unknown as { name: string } | null;
-                  const spot = c.spots as unknown as { id: string; name: string } | null;
                   const angler = c.profiles as unknown as { id: string; username: string; avatar_url: string | null } | null;
                   return (
                     <Link key={c.id} href={`/catches/${c.id}`} className="group relative rounded-xl overflow-hidden border border-white/8 aspect-square block">
@@ -183,13 +207,22 @@ export default async function ExplorePage() {
                 })}
               </div>
             </div>
+          ) : (
+            <div className="text-center py-16 rounded-2xl border border-white/8 bg-white/2">
+              <Fish size={40} className="mx-auto text-slate-700 mb-3" />
+              <h3 className="text-lg font-semibold text-slate-300 mb-1">No catches yet</h3>
+              <p className="text-sm text-slate-600 mb-4">Be the first to log a catch and show up on the explore page!</p>
+              <Link href="/log-catch" className="inline-block px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors">
+                Log a Catch
+              </Link>
+            </div>
           )}
 
           {/* Biggest fish */}
           {publicBigCatches.length > 0 && (
             <div>
               <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-                <Scale size={13} className="text-yellow-400" /> Biggest Fish This Week
+                <Scale size={13} className="text-yellow-400" /> Biggest Fish — {timeLabel}
               </h2>
               <div className="space-y-2">
                 {publicBigCatches.map((c, i) => {
@@ -221,6 +254,40 @@ export default async function ExplorePage() {
               </div>
             </div>
           )}
+
+          {/* Species Guide */}
+          {(popularSpecies ?? []).length > 0 && (
+            <div>
+              <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
+                <BookOpen size={13} className="text-green-400" /> Species Guide
+              </h2>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                {(popularSpecies ?? []).map((sp) => {
+                  const species = sp as unknown as { id: string; name: string; image_url: string | null };
+                  return (
+                    <Link
+                      key={species.id}
+                      href={`/fish/${species.id}`}
+                      className="flex flex-col items-center gap-2 p-3 rounded-xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-white/12 transition-colors group"
+                    >
+                      {species.image_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={species.image_url} alt={species.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-blue-600/15 flex items-center justify-center">
+                          <Fish size={20} className="text-blue-400" />
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-300 group-hover:text-white text-center leading-tight transition-colors">{species.name}</p>
+                    </Link>
+                  );
+                })}
+              </div>
+              <Link href="/fish" className="mt-3 text-xs text-blue-400 hover:text-blue-300 inline-block transition-colors">
+                View all species →
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Right column */}
@@ -229,11 +296,9 @@ export default async function ExplorePage() {
           {/* Trending spots */}
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-              <MapPin size={13} className="text-cyan-400" /> Hot Spots
+              <MapPin size={13} className="text-cyan-400" /> {trendingSpots.length > 0 ? "Hot Spots" : "Popular Spots"}
             </h2>
-            {trendingSpots.length === 0 ? (
-              <p className="text-slate-600 text-sm">No data yet this week.</p>
-            ) : (
+            {trendingSpots.length > 0 ? (
               <div className="space-y-2">
                 {trendingSpots.map((spot, i) => (
                   <Link
@@ -256,16 +321,43 @@ export default async function ExplorePage() {
                   </Link>
                 ))}
               </div>
+            ) : (topSpots ?? []).length > 0 ? (
+              <div className="space-y-2">
+                {(topSpots ?? []).map((s) => {
+                  const spot = s as unknown as { id: string; name: string; water_type: string; state: string | null };
+                  return (
+                    <Link
+                      key={spot.id}
+                      href={`/spots/${spot.id}`}
+                      className="flex items-center gap-3 p-3.5 rounded-xl border border-white/8 bg-white/2 hover:bg-white/4 hover:border-white/12 transition-colors group"
+                    >
+                      <MapPin size={14} className="text-cyan-400/60 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors truncate">{spot.name}</p>
+                        <p className="text-xs text-slate-600 flex items-center gap-1">
+                          <Waves size={9} className="shrink-0" />
+                          {spot.water_type}{spot.state ? ` · ${spot.state}` : ""}
+                        </p>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-slate-600 text-sm">No spots yet.</p>
             )}
+            <Link href="/spots" className="mt-3 text-xs text-blue-400 hover:text-blue-300 inline-block transition-colors">
+              Browse all spots →
+            </Link>
           </div>
 
           {/* Most active anglers */}
           <div>
             <h2 className="flex items-center gap-2 text-sm font-semibold text-slate-400 uppercase tracking-wide mb-3">
-              <Users size={13} className="text-violet-400" /> Active Anglers
+              <Users size={13} className="text-violet-400" /> {hasWeekData ? "Active Anglers" : "Top Anglers"}
             </h2>
             {topAnglers.length === 0 ? (
-              <p className="text-slate-600 text-sm">No catches this week yet.</p>
+              <p className="text-slate-600 text-sm">No catches yet.</p>
             ) : (
               <div className="space-y-2">
                 {topAnglers.map((angler, i) => (
@@ -277,14 +369,14 @@ export default async function ExplorePage() {
                     <span className="text-sm font-black text-slate-700 w-4 leading-none">{i + 1}</span>
                     <Avatar url={angler.avatar_url} username={angler.username} size={28} />
                     <p className="flex-1 text-sm text-slate-300 group-hover:text-white transition-colors truncate">@{angler.username}</p>
-                    <span className="text-xs text-violet-400/80 font-medium shrink-0">{angler.count} 🎣</span>
+                    <span className="text-xs text-violet-400/80 font-medium shrink-0">{angler.count} catches</span>
                   </Link>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Spot ratings leader */}
+          {/* Top Rated Spots CTA */}
           <div className="p-4 rounded-xl border border-yellow-500/15 bg-yellow-500/5">
             <h2 className="flex items-center gap-2 text-sm font-semibold text-yellow-400/80 mb-2">
               <Star size={13} /> Top Rated Spots
