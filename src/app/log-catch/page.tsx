@@ -136,24 +136,65 @@ export default function LogCatchPage() {
       }
     }
 
-    const { error: err } = await supabase.from("catches").insert({
+    const parsedWeight = weightLbs ? parseFloat(weightLbs) : null;
+    const parsedLength = lengthIn ? parseFloat(lengthIn) : null;
+
+    // Server-side validation
+    if (parsedWeight != null && (parsedWeight < 0 || parsedWeight > 1500)) {
+      setError("Weight must be between 0 and 1500 lbs"); setLoading(false); return;
+    }
+    if (parsedLength != null && (parsedLength < 0 || parsedLength > 240)) {
+      setError("Length must be between 0 and 240 inches"); setLoading(false); return;
+    }
+
+    const { data: insertData, error: err } = await supabase.from("catches").insert({
       user_id: user.id,
       spot_id: spotId,
       fish_id: fishId,
       bait_id: baitId || null,
-      weight_lbs: weightLbs ? parseFloat(weightLbs) : null,
-      length_in: lengthIn ? parseFloat(lengthIn) : null,
+      weight_lbs: parsedWeight,
+      length_in: parsedLength,
       caught_at: new Date(caughtAt).toISOString(),
       notes: notes || null,
       photo_url: photoUrl,
       visibility,
       is_private: visibility === "private",
-    });
+    }).select("id").single();
 
     if (err) {
       setError(err.message);
       setLoading(false);
     } else {
+      // Auto-flag catches that exceed species world record
+      if (parsedWeight != null || parsedLength != null) {
+        const { data: species } = await supabase
+          .from("fish_species")
+          .select("name, record_weight_lbs, record_length_in")
+          .eq("id", fishId)
+          .single();
+        const rec = species as { name: string; record_weight_lbs: number | null; record_length_in: number | null } | null;
+        const reasons: string[] = [];
+        if (rec?.record_weight_lbs && parsedWeight && parsedWeight > rec.record_weight_lbs) {
+          reasons.push(`Weight ${parsedWeight} lbs exceeds ${rec.name} world record of ${rec.record_weight_lbs} lbs`);
+        }
+        if (rec?.record_length_in && parsedLength && parsedLength > rec.record_length_in) {
+          reasons.push(`Length ${parsedLength} in exceeds ${rec.name} world record of ${rec.record_length_in} in`);
+        }
+        if (!rec?.record_weight_lbs && parsedWeight && parsedWeight > 200) {
+          reasons.push(`Weight ${parsedWeight} lbs is unusually high`);
+        }
+        if (!rec?.record_length_in && parsedLength && parsedLength > 72) {
+          reasons.push(`Length ${parsedLength} in is unusually high`);
+        }
+        if (reasons.length > 0) {
+          await supabase.from("content_reports").insert({
+            reporter_id: user.id,
+            content_type: "catch",
+            content_id: insertData.id,
+            reason: `[Auto-flagged] ${reasons.join(". ")}`,
+          });
+        }
+      }
       await hapticSuccess();
       router.refresh();
       router.push(`/spots/${spotId}`);

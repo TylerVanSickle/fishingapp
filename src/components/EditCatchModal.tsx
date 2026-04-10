@@ -84,11 +84,18 @@ export default function EditCatchModal({ catch_, onClose }: Props) {
                 type="number"
                 step="0.1"
                 min="0"
+                max="1500"
                 value={weight}
-                onChange={(e) => setWeight(e.target.value)}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (e.target.value === "" || (v >= 0 && v <= 1500)) setWeight(e.target.value);
+                }}
                 placeholder="e.g. 2.5"
                 className="w-full px-3.5 py-2.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors"
               />
+              {parseFloat(weight) > 200 && (
+                <p className="text-[10px] text-amber-500 mt-1">Are you sure? That&apos;s a monster!</p>
+              )}
             </div>
             <div>
               <label className="block text-xs text-slate-400 mb-1.5">Length (in)</label>
@@ -96,11 +103,18 @@ export default function EditCatchModal({ catch_, onClose }: Props) {
                 type="number"
                 step="0.5"
                 min="0"
+                max="240"
                 value={length}
-                onChange={(e) => setLength(e.target.value)}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  if (e.target.value === "" || (v >= 0 && v <= 240)) setLength(e.target.value);
+                }}
                 placeholder="e.g. 14"
                 className="w-full px-3.5 py-2.5 rounded-lg bg-[#0c1a2e] border border-white/10 text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-blue-500 transition-colors"
               />
+              {parseFloat(length) > 72 && (
+                <p className="text-[10px] text-amber-500 mt-1">Over 6 feet — double check!</p>
+              )}
             </div>
           </div>
 

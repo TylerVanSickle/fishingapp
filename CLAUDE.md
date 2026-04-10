@@ -119,6 +119,7 @@ These SQL files in `supabase/` need to be run in the Supabase SQL editor:
 - `migration_v14_contact.sql` — contact_submissions table
 - `migration_v15_push.sql` — push_subscriptions table
 - `migration_v16_moderation.sql` — user_blocks, moderation columns, admin_actions
+- `migration_v17_species_records.sql` — record_weight_lbs/record_length_in on fish_species for suspicious catch flagging
 
 ## Environment Variables
 ```

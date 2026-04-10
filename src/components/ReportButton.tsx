@@ -75,8 +75,8 @@ export default function ReportButton({ contentType, contentId, isOwn = false }: 
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-[#0b1628] border border-white/12 rounded-2xl p-5 shadow-2xl">
+        <div className="fixed inset-0 z-80 flex items-center justify-center p-4 pb-24 sm:pb-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm max-h-[calc(100vh-8rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto bg-[#0b1628] border border-white/12 rounded-2xl p-5 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-white text-base">Report {contentType}</h3>
               <button onClick={() => setOpen(false)} className="w-7 h-7 rounded-full bg-white/8 hover:bg-white/15 flex items-center justify-center transition-colors">
