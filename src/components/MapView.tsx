@@ -12,6 +12,7 @@ import Link from "next/link";
 
 type WaterBodyPanel = {
   name: string;
+  realName?: string;
   lat: number;
   lng: number;
   nearbySpots: SpotWithFish[];
@@ -232,10 +233,10 @@ export default function MapView({ spots, heatmapPoints = [], homeState = null }:
       );
 
       if (waterHit) {
-        const name: string =
+        const realName: string | undefined =
           waterHit.properties?.name_en ||
-          waterHit.properties?.name ||
-          (waterHit.layer?.id === "waterway-clickable" ? "River / Stream" : "Lake / Reservoir");
+          waterHit.properties?.name || undefined;
+        const name = realName ?? (waterHit.layer?.id === "waterway-clickable" ? "River / Stream" : "Lake / Reservoir");
         const { lat, lng } = event.lngLat;
         const nearby = spots
           .filter((s) => s.latitude != null && s.longitude != null)
@@ -243,7 +244,7 @@ export default function MapView({ spots, heatmapPoints = [], homeState = null }:
           .filter((s) => s.dist < 25)
           .sort((a, b) => a.dist - b.dist)
           .slice(0, 8);
-        setWaterBody({ name, lat, lng, nearbySpots: nearby });
+        setWaterBody({ name, realName, lat, lng, nearbySpots: nearby });
         setSelectedSpot(null);
         return;
       }
@@ -701,16 +702,22 @@ export default function MapView({ spots, heatmapPoints = [], homeState = null }:
                     );
                   })}
                 </div>
+                <Link
+                  href={`/submit-spot?lat=${waterBody.lat}&lng=${waterBody.lng}${waterBody.realName ? `&name=${encodeURIComponent(waterBody.realName)}` : ""}`}
+                  className="mt-4 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-blue-500/25 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 hover:text-blue-300 text-sm font-medium transition-colors"
+                >
+                  <MapPin size={13} /> Add this spot to HookLine
+                </Link>
               </>
             ) : (
               <div className="text-center py-10">
                 <MapPin size={28} className="mx-auto mb-3 text-slate-700" />
                 <p className="text-sm text-slate-500">No spots logged near here yet</p>
                 <Link
-                  href={`/submit-spot?lat=${waterBody.lat}&lng=${waterBody.lng}&name=${encodeURIComponent(waterBody.name)}`}
-                  className="mt-3 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  href={`/submit-spot?lat=${waterBody.lat}&lng=${waterBody.lng}${waterBody.realName ? `&name=${encodeURIComponent(waterBody.realName)}` : ""}`}
+                  className="mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors"
                 >
-                  Add the first spot →
+                  <MapPin size={13} /> Add the first spot
                 </Link>
               </div>
             )}

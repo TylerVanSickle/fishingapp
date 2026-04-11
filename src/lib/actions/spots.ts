@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendPushToUser } from "@/lib/push";
 
 // ─── Admin ───────────────────────────────────────────────────────────────────
 
@@ -18,6 +19,23 @@ async function assertAdmin() {
 export async function approveSpot(spotId: string) {
   const supabase = await assertAdmin();
   await supabase.from("spots").update({ approved: true }).eq("id", spotId);
+
+  // Notify the spot creator that their spot was approved
+  const { data: spot } = await supabase.from("spots")
+    .select("created_by, name").eq("id", spotId).single();
+  if (spot?.created_by) {
+    await supabase.from("notifications").insert({
+      user_id: spot.created_by,
+      type: "spot_approved",
+      entity_id: spotId,
+    });
+    void sendPushToUser(supabase, spot.created_by, {
+      title: "Spot approved!",
+      body: `Your spot "${spot.name}" is now live on the map`,
+      url: `/spots/${spotId}`,
+    });
+  }
+
   revalidatePath("/admin/spots");
   revalidatePath("/map");
   revalidatePath("/spots");
@@ -25,6 +43,23 @@ export async function approveSpot(spotId: string) {
 
 export async function rejectSpot(spotId: string) {
   const supabase = await assertAdmin();
+
+  // Notify the creator before deleting
+  const { data: spot } = await supabase.from("spots")
+    .select("created_by, name").eq("id", spotId).single();
+  if (spot?.created_by) {
+    await supabase.from("notifications").insert({
+      user_id: spot.created_by,
+      type: "spot_rejected",
+      entity_id: spotId,
+    });
+    void sendPushToUser(supabase, spot.created_by, {
+      title: "Spot not approved",
+      body: `Your spot "${spot.name}" was not approved. Check our guidelines and try again.`,
+      url: "/submit-spot",
+    });
+  }
+
   await supabase.from("spots").delete().eq("id", spotId);
   revalidatePath("/admin/spots");
 }

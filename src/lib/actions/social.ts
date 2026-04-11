@@ -226,6 +226,44 @@ export async function reportCatchComment(commentId: string, reason?: string) {
   );
 }
 
+// ─── Notify followers of new catch ────────────────────────────────────────────
+
+export async function notifyFollowersOfCatch(catchId: string, spotId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+
+  // Get all followers
+  const { data: followers } = await supabase
+    .from("follows")
+    .select("follower_id")
+    .eq("following_id", user.id);
+
+  if (!followers || followers.length === 0) return;
+
+  const { data: actor } = await supabase.from("profiles").select("username").eq("id", user.id).single();
+  const { data: spot } = await supabase.from("spots").select("name").eq("id", spotId).single();
+  const spotName = (spot as unknown as { name: string } | null)?.name;
+
+  // Create notifications for each follower (batch insert)
+  const notifs = followers.map((f) => ({
+    user_id: f.follower_id,
+    type: "follow_catch",
+    actor_id: user.id,
+    entity_id: catchId,
+  }));
+  await supabase.from("notifications").insert(notifs);
+
+  // Send push to each follower
+  for (const f of followers) {
+    void sendPushToUser(supabase, f.follower_id, {
+      title: "New catch!",
+      body: `@${actor?.username ?? "Someone"} logged a catch${spotName ? ` at ${spotName}` : ""}`,
+      url: `/catches/${catchId}`,
+    });
+  }
+}
+
 // ─── Catch reactions ──────────────────────────────────────────────────────────
 
 export async function setCatchReaction(catchId: string, emoji: string | null) {

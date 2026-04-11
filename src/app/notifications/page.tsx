@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Bell, UserPlus, MessageSquare, Fish, Star, MapPin, Heart } from "lucide-react";
+import { Bell, UserPlus, MessageSquare, Fish, Star, MapPin, Heart, CheckCircle, AlertTriangle } from "lucide-react";
 import PushSubscribeButton from "@/components/PushSubscribeButton";
 
 function timeAgo(dateStr: string) {
@@ -72,6 +72,34 @@ const NOTIF_TYPES: Record<string, NotifConfig> = {
     label: (actor, entityId) => <><strong className="text-white">@{actor ?? "Someone"}</strong> reacted to{entityId ? <> your <Link href={`/catches/${entityId}`} className="text-blue-400 hover:text-blue-300">catch</Link></> : " your catch"}</>,
     href: (_, entityId) => entityId ? `/catches/${entityId}` : null,
   },
+  follow_catch: {
+    icon: Fish,
+    iconBg: "bg-green-600/20",
+    iconColor: "text-green-400",
+    label: (actor, entityId) => <><strong className="text-white">@{actor ?? "Someone"}</strong> logged a new{entityId ? <> <Link href={`/catches/${entityId}`} className="text-blue-400 hover:text-blue-300">catch</Link></> : " catch"}</>,
+    href: (_, entityId) => entityId ? `/catches/${entityId}` : null,
+  },
+  spot_approved: {
+    icon: CheckCircle,
+    iconBg: "bg-green-600/20",
+    iconColor: "text-green-400",
+    label: (_, entityId) => <>Your{entityId ? <> <Link href={`/spots/${entityId}`} className="text-blue-400 hover:text-blue-300">spot</Link></> : " spot"} was approved and is now live on the map!</>,
+    href: (_, entityId) => entityId ? `/spots/${entityId}` : null,
+  },
+  spot_rejected: {
+    icon: AlertTriangle,
+    iconBg: "bg-red-600/20",
+    iconColor: "text-red-400",
+    label: () => <>Your submitted spot was not approved. It may not meet our guidelines.</>,
+    href: () => "/submit-spot",
+  },
+  welcome: {
+    icon: Star,
+    iconBg: "bg-amber-500/20",
+    iconColor: "text-amber-400",
+    label: () => <>Welcome to HookLine! Start by exploring the <Link href="/map" className="text-blue-400 hover:text-blue-300">map</Link> and logging your first catch.</>,
+    href: () => "/map",
+  },
 };
 
 export default async function NotificationsPage() {
@@ -107,6 +135,83 @@ export default async function NotificationsPage() {
   const notifs = (notifications ?? []) as unknown as Notification[];
   const unreadCount = notifs.filter((n) => !n.read).length;
 
+  // Group notifications by date
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterdayStart = todayStart - 86400000;
+  const weekStart = todayStart - 6 * 86400000;
+
+  function dateGroup(dateStr: string) {
+    const t = new Date(dateStr).getTime();
+    if (t >= todayStart) return "Today";
+    if (t >= yesterdayStart) return "Yesterday";
+    if (t >= weekStart) return "This Week";
+    return "Earlier";
+  }
+
+  const groups: { label: string; items: Notification[] }[] = [];
+  for (const n of notifs) {
+    const label = dateGroup(n.created_at);
+    const last = groups[groups.length - 1];
+    if (last?.label === label) {
+      last.items.push(n);
+    } else {
+      groups.push({ label, items: [n] });
+    }
+  }
+
+  function renderNotif(n: Notification) {
+    const actor = n.profiles?.username ?? null;
+    const cfg = NOTIF_TYPES[n.type];
+
+    if (!cfg) return (
+      <div key={n.id} className="p-4 rounded-xl border border-white/6 bg-white/2 flex items-center gap-3">
+        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+          <Bell size={14} className="text-slate-500" />
+        </div>
+        <div>
+          <p className="text-sm text-slate-400">{n.type.replace(/_/g, " ")}</p>
+          <p className="text-xs text-slate-600 mt-0.5">{timeAgo(n.created_at)}</p>
+        </div>
+      </div>
+    );
+
+    const Icon = cfg.icon;
+    const href = cfg.href(n.actor_id, n.entity_id);
+
+    const inner = (
+      <div className="flex items-center gap-3">
+        <div className={`w-9 h-9 rounded-full ${cfg.iconBg} flex items-center justify-center shrink-0`}>
+          <Icon size={15} className={cfg.iconColor} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm text-slate-300 leading-snug">
+            {cfg.label(actor, n.entity_id)}
+          </p>
+          <p className="text-xs text-slate-600 mt-0.5">{timeAgo(n.created_at)}</p>
+        </div>
+        {!n.read && (
+          <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
+        )}
+      </div>
+    );
+
+    return (
+      <div
+        key={n.id}
+        className={`p-4 rounded-xl border transition-colors ${
+          !n.read ? "border-blue-500/20 bg-blue-500/5" : "border-white/6 bg-white/2"
+        }`}
+      >
+        {href ? (
+          <Link href={href} className="block hover:opacity-80 transition-opacity">
+            {inner}
+          </Link>
+        ) : inner}
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-8 gap-4 flex-wrap">
@@ -138,58 +243,15 @@ export default async function NotificationsPage() {
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-2">
-          {notifs.map((n) => {
-            const actor = n.profiles?.username ?? null;
-            const cfg = NOTIF_TYPES[n.type];
-
-            if (!cfg) return (
-              <div key={n.id} className="p-4 rounded-xl border border-white/6 bg-white/2 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
-                  <Bell size={14} className="text-slate-500" />
-                </div>
-                <div>
-                  <p className="text-sm text-slate-400">{n.type.replace(/_/g, " ")}</p>
-                  <p className="text-xs text-slate-600 mt-0.5">{timeAgo(n.created_at)}</p>
-                </div>
+        <div className="flex flex-col gap-6">
+          {groups.map((group) => (
+            <div key={group.label}>
+              <p className="text-xs font-semibold text-slate-600 uppercase tracking-widest mb-2 px-1">{group.label}</p>
+              <div className="flex flex-col gap-2">
+                {group.items.map(renderNotif)}
               </div>
-            );
-
-            const Icon = cfg.icon;
-            const href = cfg.href(n.actor_id, n.entity_id);
-
-            const inner = (
-              <div className="flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-full ${cfg.iconBg} flex items-center justify-center shrink-0`}>
-                  <Icon size={15} className={cfg.iconColor} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-300 leading-snug">
-                    {cfg.label(actor, n.entity_id)}
-                  </p>
-                  <p className="text-xs text-slate-600 mt-0.5">{timeAgo(n.created_at)}</p>
-                </div>
-                {!n.read && (
-                  <div className="w-2 h-2 rounded-full bg-blue-500 shrink-0" />
-                )}
-              </div>
-            );
-
-            return (
-              <div
-                key={n.id}
-                className={`p-4 rounded-xl border transition-colors ${
-                  !n.read ? "border-blue-500/20 bg-blue-500/5" : "border-white/6 bg-white/2"
-                }`}
-              >
-                {href ? (
-                  <Link href={href} className="block hover:opacity-80 transition-opacity">
-                    {inner}
-                  </Link>
-                ) : inner}
-              </div>
-            );
-          })}
+            </div>
+          ))}
         </div>
       )}
     </div>

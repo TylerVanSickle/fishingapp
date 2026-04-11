@@ -27,5 +27,11 @@ export async function completeOnboarding(formData: FormData) {
     );
   }
 
+  // Welcome notification
+  await supabase.from("notifications").insert({
+    user_id: user.id,
+    type: "welcome",
+  });
+
   redirect("/welcome");
 }

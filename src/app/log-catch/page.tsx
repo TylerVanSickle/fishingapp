@@ -7,6 +7,7 @@ import { Select } from "@/components/ui/Select";
 import SearchableSelect from "@/components/ui/SearchableSelect";
 import { Fish, CalendarDays, Camera, X, Lock, Users, Globe, ImagePlus } from "lucide-react";
 import { isNative, takeCameraPhoto, hapticSuccess } from "@/lib/native";
+import { notifyFollowersOfCatch } from "@/lib/actions/social";
 
 type Visibility = "public" | "friends" | "private";
 
@@ -42,6 +43,7 @@ export default function LogCatchPage() {
   const [spotId, setSpotId] = useState(preselectedSpot);
   const [fishId, setFishId] = useState(preselectedFish);
   const [baitId, setBaitId] = useState("");
+  const [customBait, setCustomBait] = useState("");
   const [weightLbs, setWeightLbs] = useState("");
   const [lengthIn, setLengthIn] = useState("");
   const [caughtAt, setCaughtAt] = useState(new Date().toISOString().slice(0, 16));
@@ -147,15 +149,21 @@ export default function LogCatchPage() {
       setError("Length must be between 0 and 240 inches"); setLoading(false); return;
     }
 
+    // If custom bait, append to notes; don't send as bait_id
+    const effectiveBaitId = baitId === "__custom__" ? null : (baitId || null);
+    const effectiveNotes = baitId === "__custom__" && customBait
+      ? [notes, `Bait: ${customBait}`].filter(Boolean).join(" | ")
+      : (notes || null);
+
     const { data: insertData, error: err } = await supabase.from("catches").insert({
       user_id: user.id,
       spot_id: spotId,
       fish_id: fishId,
-      bait_id: baitId || null,
+      bait_id: effectiveBaitId,
       weight_lbs: parsedWeight,
       length_in: parsedLength,
       caught_at: new Date(caughtAt).toISOString(),
-      notes: notes || null,
+      notes: effectiveNotes,
       photo_url: photoUrl,
       visibility,
       is_private: visibility === "private",
@@ -195,6 +203,8 @@ export default function LogCatchPage() {
           });
         }
       }
+      // Notify followers in the background
+      void notifyFollowersOfCatch(insertData.id, spotId);
       await hapticSuccess();
       router.refresh();
       router.push(`/spots/${spotId}`);
@@ -244,20 +254,30 @@ export default function LogCatchPage() {
 
           <div>
             <label className={labelClass}>Bait / Lure</label>
-            <Select value={baitId} onChange={(e) => setBaitId(e.target.value)}>
+            <Select value={baitId} onChange={(e) => { setBaitId(e.target.value); if (e.target.value !== "__custom__") setCustomBait(""); }}>
               <option value="">Select bait (optional)</option>
               {Object.entries(baitGroups).map(([type, items]) => (
                 <optgroup key={type} label={BAIT_TYPE_LABELS[type] ?? type}>
                   {items.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </optgroup>
               ))}
+              <option value="__custom__">Other — type your own</option>
             </Select>
+            {baitId === "__custom__" && (
+              <input
+                type="text"
+                value={customBait}
+                onChange={(e) => setCustomBait(e.target.value)}
+                placeholder="e.g. Homemade dough ball, 3in Senko..."
+                className={`${inputClass} mt-2`}
+              />
+            )}
           </div>
         </div>
 
         {/* Measurements */}
         <div className="p-5 rounded-2xl border border-white/8 bg-white/2 flex flex-col gap-4">
-          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Measurements</h2>
+          <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-widest">Measurements <span className="normal-case font-normal text-slate-600">(optional)</span></h2>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
